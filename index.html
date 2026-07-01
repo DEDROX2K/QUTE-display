@@ -8,69 +8,147 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500;600;700&family=DotGothic16&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
 </head>
 <body>
-  <div class="stage" id="stage" data-view="crt">
-    <section class="notepad-screen" aria-label="Notepad workspace">
-      <button id="closeNotepad" class="notepad-launcher notepad-launcher--back" type="button" aria-label="Return to display">DISPLAY</button>
-      <div class="notepad-shell">
-        <div class="notepad-header">
-          <div class="notepad-title">Workspace Notes</div>
-        </div>
-        <div class="notepad-splitview">
-          <section class="note-pane note-pane--light" aria-label="Left notes pane">
-            <div class="notepad-tablist" id="leftTablist" role="tablist" aria-label="Left notes tabs"></div>
-            <div class="notepad-editor">
-              <input id="leftNoteTitleInput" class="note-title-input" type="text" maxlength="60" placeholder="Untitled note" aria-label="Left note title" />
-              <textarea id="leftNoteBodyInput" class="note-body-input" placeholder="Start typing..." aria-label="Left note body"></textarea>
+  <div class="screen">
+    <div class="views-viewport">
+      <div class="views-track">
+        <section class="view checklist-view" aria-label="Checklist section">
+          <header class="task-header">NEXT TASK:</header>
+
+          <section class="clock-panel" aria-label="Current time">
+            <div class="seconds-dial" aria-hidden="true">
+              <div class="seconds-hand" id="secondsHand"></div>
+              <div class="seconds-center"></div>
+            </div>
+            <time id="clock">00:00</time>
+            <div class="rail-meta" aria-hidden="true">
+              <span class="rail-badge">MDR</span>
+              <span>04</span>
             </div>
           </section>
-          <section class="note-pane note-pane--dark" aria-label="Right notes pane">
-            <div class="notepad-tablist notepad-tablist--dark" id="rightTablist" role="tablist" aria-label="Right notes tabs"></div>
-            <div class="notepad-editor notepad-editor--dark">
-              <input id="rightNoteTitleInput" class="note-title-input note-title-input--dark" type="text" maxlength="60" placeholder="Untitled note" aria-label="Right note title" />
-              <textarea id="rightNoteBodyInput" class="note-body-input note-body-input--dark" placeholder="Start typing..." aria-label="Right note body"></textarea>
+
+          <div class="center-divider" aria-hidden="true"></div>
+
+          <main id="tasks" class="tasks-panel" aria-label="Task checklist"></main>
+
+          <div class="notes-dock" aria-label="Quick notes">
+            <button class="note-tab note-tab-1" type="button" data-note="note-1" aria-controls="bookView" aria-expanded="false">NOTE 1</button>
+            <button class="note-tab note-tab-2" type="button" data-note="note-2" aria-controls="bookView" aria-expanded="false">NOTE 2</button>
+            <button class="note-tab note-tab-3" type="button" data-note="note-3" aria-controls="bookView" aria-expanded="false">NOTE 3</button>
+          </div>
+
+          <aside class="status-panel" aria-label="Availability status">
+            <div class="model-orbit" aria-label="3D profile model">
+              <model-viewer
+                class="avatar-viewer"
+                src="./threeD/coin.glb"
+                alt="3D model"
+                auto-rotate
+                rotation-per-second="100deg"
+                camera-controls
+                disable-pan
+                disable-zoom
+                interaction-prompt="none"
+                shadow-intensity="0"
+                shadow-softness="0"
+                exposure="0"
+                lighting-intensity="0"
+                environment-image="neutral"
+                camera-orbit="30deg 78deg auto"
+                field-of-view="28deg">
+              </model-viewer>
             </div>
-          </section>
-        </div>
+            <button id="statusButton" class="status-button" type="button">AVAILABLE</button>
+            <div class="diagnostics" id="diagnostics">AVAILABLE CPU 43%</div>
+            <div class="stripes" aria-hidden="true">
+              <div class="stripes-track">
+                <span class="stripe stripe-1"></span>
+                <span class="stripe stripe-2"></span>
+                <span class="stripe stripe-3"></span>
+                <span class="stripe stripe-4"></span>
+                <span class="stripe stripe-5"></span>
+                <span class="stripe stripe-6"></span>
+                <span class="stripe stripe-7"></span>
+                <span class="stripe stripe-8"></span>
+                <span class="stripe stripe-9"></span>
+              </div>
+              <div class="stripes-track" aria-hidden="true">
+                <span class="stripe stripe-1"></span>
+                <span class="stripe stripe-2"></span>
+                <span class="stripe stripe-3"></span>
+                <span class="stripe stripe-4"></span>
+                <span class="stripe stripe-5"></span>
+                <span class="stripe stripe-6"></span>
+                <span class="stripe stripe-7"></span>
+                <span class="stripe stripe-8"></span>
+                <span class="stripe stripe-9"></span>
+              </div>
+            </div>
+          </aside>
+
+          <div class="printer-note" id="printerNote">WELLNESS BULLETIN READY FOR COLLECTION</div>
+        </section>
+
+        <section id="bookView" class="view book-view" aria-label="Book section" aria-hidden="true">
+          <button id="checklistReturn" class="checklist-tab" type="button" aria-label="Return to checklist">
+            <span class="checklist-tab-label">CHECKLIST</span>
+            <span class="checklist-tab-arrow" aria-hidden="true">«</span>
+          </button>
+
+          <div class="book-shell">
+            <article class="book-page book-page-left">
+              <div class="book-page-inner">
+                <h2
+                  class="book-title book-editable"
+                  id="bookLeftTitle"
+                  contenteditable="true"
+                  spellcheck="false"
+                  role="textbox"
+                  aria-label="Left page heading"
+                  data-placeholder="Heading"></h2>
+                <div
+                  class="book-copy book-editable"
+                  id="bookLeftCopy"
+                  contenteditable="true"
+                  spellcheck="false"
+                  role="textbox"
+                  aria-label="Left page notes"
+                  data-placeholder="Type your notes here"></div>
+              </div>
+            </article>
+
+            <div class="book-spine" aria-hidden="true"></div>
+
+            <article class="book-page book-page-right">
+              <div class="book-page-inner dark">
+                <h2
+                  class="book-title book-editable inverted"
+                  id="bookRightTitle"
+                  contenteditable="true"
+                  spellcheck="false"
+                  role="textbox"
+                  aria-label="Right page heading"
+                  data-placeholder="Heading"></h2>
+                <div
+                  class="book-copy book-editable inverted"
+                  id="bookRightCopy"
+                  contenteditable="true"
+                  spellcheck="false"
+                  role="textbox"
+                  aria-label="Right page notes"
+                  data-placeholder="Type your notes here"></div>
+              </div>
+            </article>
+          </div>
+
+          <button id="bookPager" class="book-pager" type="button" aria-label="Next page">
+            <span id="bookPagerLabel">page 1</span>
+            <span class="book-pager-arrow" aria-hidden="true">›</span>
+          </button>
+        </section>
       </div>
-    </section>
-
-    <div class="screen">
-      <button id="openNotepad" class="notepad-launcher" type="button" aria-label="Open notepad">NOTEPAD</button>
-      <header class="task-header">NEXT TASK:</header>
-
-      <section class="clock-panel" aria-label="Current time">
-        <div class="seconds-dial" aria-hidden="true">
-          <div class="seconds-hand" id="secondsHand"></div>
-          <div class="seconds-center"></div>
-        </div>
-        <time id="clock">00:00</time>
-        <div class="rail-meta" aria-hidden="true">
-          <span class="rail-badge">MDR</span>
-          <span>04</span>
-        </div>
-      </section>
-
-      <main id="tasks" class="tasks-panel" aria-label="Task checklist"></main>
-
-      <aside class="status-panel" aria-label="Availability status">
-        <button id="statusButton" class="status-button" type="button">AVAILABLE</button>
-        <div class="diagnostics" id="diagnostics">AVAILABLE CPU 43%</div>
-        <div class="stripes" aria-hidden="true">
-          <span class="stripe"></span>
-          <span class="stripe"></span>
-          <span class="stripe"></span>
-          <span class="stripe"></span>
-          <span class="stripe"></span>
-          <span class="stripe"></span>
-          <span class="stripe"></span>
-          <span class="stripe"></span>
-          <span class="stripe"></span>
-        </div>
-      </aside>
-
-      <div class="printer-note" id="printerNote">WELLNESS BULLETIN READY FOR COLLECTION</div>
     </div>
   </div>
 
