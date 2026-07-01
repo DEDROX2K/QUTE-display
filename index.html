@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CRT Desk Display</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500;600;700&family=DotGothic16&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #f5f5f2;
+      --ink: #000;
+      --white: #fff;
+      --done: #565656;
+      --frame-pad: clamp(12px, 1.2vw, 18px);
+      --divider: clamp(4px, 0.34vw, 6px);
+      --header-height: clamp(98px, 14.5vh, 168px);
+      --left-pad: clamp(34px, 3.8vw, 64px);
+      --right-pad: clamp(24px, 2.6vw, 46px);
+      --task-size: clamp(24px, 3.05vw, 54px);
+      --clock-size: clamp(48px, 5vw, 90px);
+      --status-size: clamp(42px, 4.45vw, 78px);
+      --focus-dots: rgba(255, 255, 255, 0.4);
+      --micro-size: clamp(10px, 0.82vw, 14px);
+      --square-cursor:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='14' height='14' fill='%23000' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E")
+        3 3,
+        auto;
+      --diag-size: clamp(11px, 0.92vw, 15px);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      overflow: hidden;
+      text-rendering: geometricPrecision;
+      -webkit-font-smoothing: none;
+      font-smooth: never;
+      cursor: var(--square-cursor);
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: var(--frame-pad);
+      font-family: "Azeret Mono", "Courier New", monospace;
+    }
+
+    .screen {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      /* aspect-ratio: 4 / 3; */
+      display: grid;
+      grid-template-columns: 60% 40%;
+      grid-template-rows: var(--header-height) 1fr;
+      background: var(--paper);
+      /* border-radius: 10px; */
+      overflow: hidden;
+      padding: 0px 40px 0px 65px;
+    }
+
+    .screen::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 4px);
+      mix-blend-mode: difference;
+    }
+
+    .screen.pixel-shuffle::after {
+      animation: pixelShuffle 1150ms steps(10, end);
+    }
+
+    .task-header {
+      display: flex;
+      align-items: center;
+      padding: 0 var(--left-pad);
+      background: var(--ink);
+      color: var(--white);
+      border-bottom: var(--divider) solid var(--paper);
+      font-size: clamp(36px, 4.05vw, 70px);
+      font-weight: 400;
+      /* letter-spacing: 0.1em; */
+      line-height: 1;
+      text-transform: uppercase;
+      user-select: none;
+          border-radius: 20px 20px 0 0;
+    }
+
+    .clock-panel {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 40px;
+      padding: 90px;
+      background: var(--paper);
+      border-bottom: var(--divider) solid var(--ink);
+      color: var(--ink);
+      user-select: none;
+    }
+
+    .roll-clock {
+      width: clamp(58px, 4.6vw, 84px);
+      height: clamp(56px, 5vw, 92px);
+      overflow: hidden;
+      /* border: 2px solid var(--ink); */
+      background: var(--paper);
+    }
+
+    .roll-clock-track {
+      display: flex;
+      flex-direction: column;
+      transform: translateY(0);
+      transition: transform 420ms steps(6, end);
+    }
+
+    .roll-clock-cell {
+      height: clamp(56px, 5vw, 92px);
+      display: grid;
+      place-items: center;
+      font-size: 50px;
+      font-weight: 700;
+      letter-spacing: -0.18em;
+      line-height: 1;
+    }
+
+    .rail-meta {
+      position: absolute;
+      right: clamp(18px, 1.6vw, 28px);
+      bottom: clamp(12px, 1vw, 18px);
+      display: flex;
+      gap: clamp(10px, 0.8vw, 14px);
+      align-items: center;
+      font-size: var(--micro-size);
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .rail-badge {
+      padding: 0.28em 0.48em 0.18em 0.64em;
+      border: 2px solid var(--ink);
+      line-height: 1;
+    }
+
+    #clock {
+      font-size: var(--clock-size);
+      font-weight: bold;
+      letter-spacing: -0.08em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+.tasks-panel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: auto;
+  background: var(--ink);
+  padding: clamp(34px, 3.3vw, 56px) clamp(26px, 2.2vw, 38px) clamp(24px, 2vw, 34px) var(--left-pad);
+  cursor: var(--square-cursor);
+  scrollbar-width: none;
+  gap: clamp(34px, 4vw, 68px);
+  scroll-padding-bottom: clamp(24px, 2vw, 34px);
+}
+
+    .tasks-panel::-webkit-scrollbar {
+      display: none;
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: clamp(36px, 3.2vw, 58px) minmax(0, 1fr);
+      align-items: start;
+      gap: clamp(14px, 1vw, 22px);
+      flex: 0 0 auto;
+    }
+
+    .task-content {
+      position: relative;
+      min-width: 0;
+      padding: clamp(6px, 0.45vw, 8px) clamp(10px, 0.8vw, 14px);
+      margin: calc(clamp(6px, 0.45vw, 8px) * -1) calc(clamp(10px, 0.8vw, 14px) * -1);
+    }
+
+    .task-check {
+      width: clamp(36px, 3.2vw, 58px);
+      height: clamp(36px, 3.2vw, 58px);
+      margin-top: clamp(3px, 0.3vw, 6px);
+      padding: 0;
+      border: 0;
+      border-radius: clamp(10px, 0.85vw, 16px);
+      background: var(--paper);
+      appearance: none;
+      cursor: var(--square-cursor);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .task.done .task-check {
+      background: var(--ink);
+      box-shadow: inset 0 0 0 clamp(4px, 0.32vw, 6px) var(--paper);
+    }
+
+    .task-check::after {
+      content: "";
+      position: absolute;
+      inset: 18% 24% 24% 30%;
+      border-right: clamp(4px, 0.34vw, 6px) solid var(--white);
+      border-bottom: clamp(4px, 0.34vw, 6px) solid var(--white);
+      transform: rotate(42deg);
+      opacity: 0;
+    }
+
+    .task.done .task-check::after {
+      opacity: 1;
+    }
+
+.task-text {
+  min-height: 1.08em;
+  color: var(--white);
+  caret-color: var(--white);
+  outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--task-size);
+  font-weight: 500;
+  line-height: 1.32;
+  letter-spacing: 0.05em;
+} 
+
+    .task-content::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: clamp(2px, 0.18vw, 3px) dotted transparent;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .task:focus-within .task-content::before {
+      border-color: var(--focus-dots);
+      opacity: 1;
+      animation: activeTaskBorder 2.8s linear infinite;
+    }
+
+    .task-text[data-empty="true"]::before {
+      content: attr(data-placeholder);
+      color: rgba(255, 255, 255, 0.36);
+      text-decoration: none;
+    }
+
+    .task.done .task-text {
+      color: var(--done);
+      text-decoration: line-through;
+      text-decoration-thickness: clamp(3px, 0.24vw, 5px);
+      text-decoration-color: var(--done);
+    }
+
+    .status-panel {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background: var(--paper);
+      border-left: var(--divider) solid var(--ink);
+      color: var(--ink);
+      padding: 0 0 clamp(16px, 1.25vw, 22px);
+    }
+
+    .panel-note {
+      position: absolute;
+      left: 50%;
+      top: 44%;
+      transform: translateX(-50%);
+      width: min(62%, 260px);
+      color: rgba(0, 0, 0, 0.72);
+      font-size: clamp(9px, 0.72vw, 12px);
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      line-height: 1.45;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .status-button {
+      align-self: center;
+      margin: 0 auto clamp(16px, 1.3vw, 22px);
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font-family: "DotGothic16", "Azeret Mono", monospace;
+      font-size: var(--status-size);
+      font-weight: 700;
+      line-height: 0.98;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      cursor: var(--square-cursor);
+      user-select: none;
+    }
+
+    .status-button.is-switching {
+      pointer-events: none;
+    }
+
+    .diagnostics {
+      align-self: center;
+      margin: 0 auto clamp(18px, 1.45vw, 24px);
+      min-height: 1.25em;
+      font-size: var(--diag-size);
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      line-height: 1.2;
+      text-align: center;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .stripes {
+      width: calc(100% - clamp(18px, 1.6vw, 30px));
+      margin: 0 auto;
+      padding-right: clamp(12px, 1vw, 18px);
+      flex: 0 0 auto;
+    }
+
+    .stripe {
+      display: block;
+      width: 100%;
+      background: var(--ink);
+    }
+
+    .stripe + .stripe {
+      margin-top: clamp(8px, 0.7vw, 12px);
+    }
+
+    .stripe:nth-child(1) { height: clamp(4px, 0.28vw, 5px); }
+    .stripe:nth-child(2) { height: clamp(6px, 0.44vw, 8px); }
+    .stripe:nth-child(3) { height: clamp(9px, 0.64vw, 11px); }
+    .stripe:nth-child(4) { height: clamp(13px, 0.9vw, 16px); }
+    .stripe:nth-child(5) { height: clamp(18px, 1.24vw, 22px); }
+    .stripe:nth-child(6) { height: clamp(24px, 1.62vw, 29px); }
+    .stripe:nth-child(7) { height: clamp(34px, 2.2vw, 40px); }
+    .stripe:nth-child(8) { height: clamp(46px, 2.9vw, 54px); }
+    .stripe:nth-child(9) { height: clamp(62px, 3.9vw, 72px); }
+
+    .printer-note {
+      position: absolute;
+      left: 50%;
+      bottom: clamp(18px, 1.5vw, 24px);
+      z-index: 4;
+      min-width: clamp(220px, 20vw, 320px);
+      max-width: min(46vw, 380px);
+      padding: clamp(10px, 0.85vw, 14px) clamp(14px, 1vw, 18px);
+      border: 2px solid var(--ink);
+      background: #ebe7d6;
+      color: var(--ink);
+      font-size: clamp(12px, 1vw, 15px);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      line-height: 1.3;
+      text-transform: uppercase;
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.18);
+      opacity: 0;
+      transform: translate(-50%, 120%) scaleY(0.72) skewX(-6deg);
+      pointer-events: none;
+    }
+
+    .printer-note.show {
+      animation: printerNote 2000ms steps(7, end) both;
+    }
+
+    /* .dos-caret {
+      display: inline-block;
+      width: 0.8em;
+      height: 1.06em;
+      margin-left: 0.04em;
+      background: var(--ink);
+      box-shadow: 0 0 0 2px var(--paper);
+      vertical-align: -0.14em;
+      animation: dosCaret 1s steps(1, end) infinite;
+      pointer-events: none;
+    }
+
+    .task.done .dos-caret {
+      background: var(--ink);
+      box-shadow: 0 0 0 2px var(--done);
+    } */
+
+    .task-check:focus-visible,
+    .status-button:focus-visible,
+    .task-text:focus-visible {
+      outline: clamp(3px, 0.26vw, 5px) solid currentColor;
+      outline-offset: clamp(4px, 0.35vw, 6px);
+    }
+
+    @keyframes activeTaskBorder {
+      0% { clip-path: inset(0 100% 100% 0); }
+      24.99% { clip-path: inset(0 0 100% 0); }
+      25% { clip-path: inset(0 0 100% 100%); }
+      49.99% { clip-path: inset(0 0 0 100%); }
+      50% { clip-path: inset(100% 0 0 100%); }
+      74.99% { clip-path: inset(100% 0 0 0); }
+      75% { clip-path: inset(100% 100% 0 0); }
+      100% { clip-path: inset(0 100% 0 0); }
+    }
+
+    @keyframes pixelShuffle {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10% { opacity: 0.18; transform: translateY(-8px); }
+      25% { opacity: 0.12; transform: translateY(-4px); }
+      45% { opacity: 0.18; transform: translateY(0); }
+      65% { opacity: 0.12; transform: translateY(6px); }
+      85% { opacity: 0.08; transform: translateY(10px); }
+      100% { opacity: 0; transform: translateY(14px); }
+    }
+
+    @keyframes printerNote {
+      0% { opacity: 0; transform: translate(-50%, 120%) scale(0.94, 0.68) skewX(-9deg); }
+      16% { opacity: 1; transform: translate(-50%, 28%) scale(1.04, 0.84) skewX(7deg); }
+      28% { opacity: 1; transform: translate(-50%, -10%) scale(0.98, 1.08) skewX(-4deg); }
+      44% { opacity: 1; transform: translate(-50%, -2%) scale(1.02, 0.98) skewX(2deg); }
+      68% { opacity: 1; transform: translate(-50%, -2%) scale(1, 1) skewX(0deg); }
+      86% { opacity: 1; transform: translate(-50%, 12%) scale(1.03, 0.92) skewX(5deg); }
+      100% { opacity: 0; transform: translate(-50%, 125%) scale(0.95, 0.66) skewX(-8deg); }
+    }
+
+    @keyframes dosCaret {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="screen">
+    <header class="task-header">NEXT TASK:</header>
+
+    <section class="clock-panel" aria-label="Current time">
+      <div class="roll-clock" aria-hidden="true">
+        <div class="roll-clock-track" id="rollClockTrack">
+          <div class="roll-clock-cell">00</div>
+          <div class="roll-clock-cell">00</div>
+          <div class="roll-clock-cell">00</div>
+        </div>
+      </div>
+      <time id="clock">00:00</time>
+      <div class="rail-meta" aria-hidden="true">
+        <span class="rail-badge">MDR</span>
+        <span>04</span>
+      </div>
+    </section>
+
+    <main id="tasks" class="tasks-panel" aria-label="Task checklist"></main>
+
+    <aside class="status-panel" aria-label="Availability status">
+      <div class="panel-note" id="panelNote">SEVERED FLOOR TERMINAL<br />MACRODATA REFINEMENT</div>
+      <button id="statusButton" class="status-button" type="button">AVAILABLE</button>
+      <div class="diagnostics" id="diagnostics">AVAILABLE CPU 43%</div>
+      <div class="stripes" aria-hidden="true">
+        <span class="stripe"></span>
+        <span class="stripe"></span>
+        <span class="stripe"></span>
+        <span class="stripe"></span>
+        <span class="stripe"></span>
+        <span class="stripe"></span>
+        <span class="stripe"></span>
+        <span class="stripe"></span>
+        <span class="stripe"></span>
+      </div>
+    </aside>
+
+    <div class="printer-note" id="printerNote">WELLNESS BULLETIN READY FOR COLLECTION</div>
+  </div>
+
+  <script>
+    (() => {
+      const clock = document.getElementById("clock");
+      const rollClockTrack = document.getElementById("rollClockTrack");
+      const tasksPanel = document.getElementById("tasks");
+      const statusButton = document.getElementById("statusButton");
+      const diagnostics = document.getElementById("diagnostics");
+      const panelNote = document.getElementById("panelNote");
+      const printerNote = document.getElementById("printerNote");
+      const screen = document.querySelector(".screen");
+      const statuses = ["AVAILABLE", "REFINING", "WELLNESS", "ON BREAK", "AWAITING INPUT"];
+      const panelMessages = {
+        AVAILABLE: "SEVERED FLOOR TERMINAL<br />MACRODATA REFINEMENT",
+        REFINING: "NUMBERS REQUIRE<br />CALM AND FOCUS",
+        WELLNESS: "PLEASE ENJOY EACH<br />FACT EQUALLY",
+        "ON BREAK": "VISIT THE DESIGNATED<br />PERPETUITY WING",
+        "AWAITING INPUT": "PLEASE REMAIN AT<br />YOUR ASSIGNED STATION"
+      };
+      const diagnosticTemplates = [
+        "CPU 43%",
+        "CPU 38%",
+        "TEMP NOMINAL",
+        "BUFFER 07",
+        "QUEUE 12",
+        "MEMORY 61%",
+        "RELAY READY",
+        "LINE STABLE"
+      ];
+      const printerMessages = [
+        "WELLNESS BULLETIN READY FOR COLLECTION",
+        "REFINEMENT BATCH TRANSFERRED TO COLD STORAGE",
+        "SHIFT AUDIT PRINTED FOR SUPERVISOR REVIEW",
+        "PERPETUITY WING APPOINTMENT NOW AVAILABLE",
+        "RELAY CALIBRATION CONFIRMED BY FLOOR SYSTEM"
+      ];
+      let statusIndex = 0;
+      let overtimeEnabled = false;
+      let statusSwitchTimeout = null;
+      let isRefreshingDosCaret = false;
+      let dosCaretFrame = 0;
+
+      function pad(value) {
+        return String(value).padStart(2, "0");
+      }
+
+      function updateClock() {
+        const now = new Date();
+        clock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+        const seconds = pad(now.getSeconds());
+        const currentSeconds = rollClockTrack.children[1].textContent;
+
+        if (currentSeconds !== seconds) {
+          rollClockTrack.children[2].textContent = seconds;
+          rollClockTrack.style.transform = "translateY(-100%)";
+
+          window.setTimeout(() => {
+            rollClockTrack.children[0].textContent = rollClockTrack.children[1].textContent;
+            rollClockTrack.children[1].textContent = seconds;
+            rollClockTrack.children[2].textContent = seconds;
+            rollClockTrack.style.transition = "none";
+            rollClockTrack.style.transform = "translateY(0)";
+            void rollClockTrack.offsetHeight;
+            rollClockTrack.style.transition = "transform 420ms steps(6, end)";
+          }, 430);
+        }
+      }
+
+      function placeCaretAtEnd(element) {
+        clearDosCaret();
+        element.focus();
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        range.collapse(false);
+        const selection = window.getSelection();
+        if (!selection) return;
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      function plainTextOnly(event) {
+        event.preventDefault();
+        const text = (event.clipboardData || window.clipboardData).getData("text/plain");
+        document.execCommand("insertText", false, text);
+      }
+
+      function getTaskValue(textElement) {
+        return textElement.textContent.replace(/\u00a0/g, " ").trim();
+      }
+
+      function syncEmptyState(textElement) {
+        textElement.dataset.empty = getTaskValue(textElement) === "" ? "true" : "false";
+      }
+
+      function scrollTasksToBottom() {
+        tasksPanel.scrollTop = tasksPanel.scrollHeight;
+      }
+
+      function clearDosCaret() {
+        tasksPanel.querySelectorAll(".dos-caret").forEach((caret) => caret.remove());
+      }
+
+      function queueDosCaretRefresh() {
+        window.cancelAnimationFrame(dosCaretFrame);
+        dosCaretFrame = window.requestAnimationFrame(refreshDosCaret);
+      }
+
+      function getSelectedTaskText() {
+        const selection = window.getSelection();
+        if (!selection || !selection.rangeCount) return null;
+
+        const anchorNode = selection.anchorNode;
+        if (!anchorNode) return null;
+
+        const anchorElement = anchorNode.nodeType === Node.ELEMENT_NODE
+          ? anchorNode
+          : anchorNode.parentElement;
+
+        return anchorElement?.closest(".task-text") || null;
+      }
+
+      function refreshDosCaret() {
+        if (isRefreshingDosCaret) return;
+
+        isRefreshingDosCaret = true;
+        clearDosCaret();
+
+        const active = document.activeElement;
+        const selection = window.getSelection();
+        const textElement = getSelectedTaskText();
+        if (!active || !active.classList.contains("task-text") || !selection || !selection.rangeCount || !selection.isCollapsed || textElement !== active) {
+          isRefreshingDosCaret = false;
+          return;
+        }
+
+        const caret = document.createElement("span");
+        caret.className = "dos-caret";
+        caret.setAttribute("aria-hidden", "true");
+        caret.contentEditable = "false";
+
+        const range = selection.getRangeAt(0).cloneRange();
+        range.collapse(true);
+        range.insertNode(caret);
+        range.setStartAfter(caret);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        isRefreshingDosCaret = false;
+      }
+
+function placeCaretAtEndAndRefresh(element) {
+  placeCaretAtEnd(element);
+}
+
+      function updateDiagnostics() {
+        const detail = diagnosticTemplates[Math.floor(Math.random() * diagnosticTemplates.length)];
+        diagnostics.textContent = `${statuses[statusIndex]} ${detail}`;
+      }
+
+      function scheduleDiagnostics() {
+        const nextDelay = 3500 + Math.random() * 5500;
+        window.setTimeout(() => {
+          updateDiagnostics();
+          scheduleDiagnostics();
+        }, nextDelay);
+      }
+
+      function triggerPrinterNote() {
+        const message = printerMessages[Math.floor(Math.random() * printerMessages.length)];
+        printerNote.textContent = message;
+        printerNote.classList.remove("show");
+        void printerNote.offsetWidth;
+        printerNote.classList.add("show");
+      }
+
+      function beginStatusSwitch(nextIndex) {
+        if (statusSwitchTimeout) {
+          window.clearTimeout(statusSwitchTimeout);
+        }
+
+        statusButton.classList.add("is-switching");
+        statusButton.textContent = ".........";
+        diagnostics.textContent = "RELAY SWITCHING";
+
+        statusSwitchTimeout = window.setTimeout(() => {
+          statusIndex = nextIndex;
+          const nextStatus = statuses[statusIndex];
+          statusButton.textContent = nextStatus;
+          panelNote.innerHTML = overtimeEnabled
+            ? "OVERTIME CONTINGENCY<br />PLEASE CONTINUE"
+            : panelMessages[nextStatus];
+          statusButton.classList.remove("is-switching");
+          updateDiagnostics();
+        }, 360);
+      }
+
+      function createTask(text = "", afterTask = null) {
+        const task = document.createElement("div");
+        task.className = "task";
+
+        const check = document.createElement("button");
+        check.className = "task-check";
+        check.type = "button";
+        check.setAttribute("aria-label", "Mark task done");
+        check.setAttribute("aria-pressed", "false");
+
+        const content = document.createElement("div");
+        content.className = "task-content";
+
+        const textElement = document.createElement("div");
+        textElement.className = "task-text";
+        textElement.contentEditable = "true";
+        textElement.spellcheck = false;
+        textElement.setAttribute("role", "textbox");
+        textElement.setAttribute("aria-label", "Task text");
+        textElement.setAttribute("data-placeholder", "add here");
+        textElement.textContent = text;
+        syncEmptyState(textElement);
+        content.appendChild(textElement);
+
+        check.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const done = task.classList.toggle("done");
+          check.setAttribute("aria-pressed", String(done));
+        });
+
+textElement.addEventListener("input", () => {
+  syncEmptyState(textElement);
+});
+
+        textElement.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            const nextTask = createTask("", task);
+            placeCaretAtEndAndRefresh(nextTask.querySelector(".task-text"));
+            return;
+          }
+
+          if (event.key === "Backspace" && getTaskValue(textElement) === "") {
+            const allTasks = Array.from(tasksPanel.querySelectorAll(".task"));
+            if (allTasks.length <= 1) return;
+
+            event.preventDefault();
+            const index = allTasks.indexOf(task);
+            const fallback = allTasks[index - 1] || allTasks[index + 1];
+            task.remove();
+            placeCaretAtEndAndRefresh(fallback.querySelector(".task-text"));
+          }
+        });
+
+        task.append(check, content);
+
+        if (afterTask) {
+          afterTask.insertAdjacentElement("afterend", task);
+          triggerPrinterNote();
+        } else {
+          tasksPanel.appendChild(task);
+        }
+
+        scrollTasksToBottom();
+
+        return task;
+      }
+
+      function focusOrCreateLastTask() {
+        const allTasks = Array.from(tasksPanel.querySelectorAll(".task"));
+        const lastTask = allTasks[allTasks.length - 1];
+
+        if (!lastTask) {
+          const newTask = createTask();
+          placeCaretAtEndAndRefresh(newTask.querySelector(".task-text"));
+          return;
+        }
+
+        const lastText = lastTask.querySelector(".task-text");
+
+        if (getTaskValue(lastText) === "") {
+          placeCaretAtEndAndRefresh(lastText);
+          return;
+        }
+
+        const newTask = createTask();
+        placeCaretAtEndAndRefresh(newTask.querySelector(".task-text"));
+      }
+
+      function triggerPixelShuffle() {
+        screen.classList.remove("pixel-shuffle");
+        void screen.offsetWidth;
+        screen.classList.add("pixel-shuffle");
+      }
+
+      function schedulePixelShuffle() {
+        const now = new Date();
+        const delay = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+        window.setTimeout(() => {
+          triggerPixelShuffle();
+          window.setInterval(triggerPixelShuffle, 60000);
+        }, delay);
+      }
+
+      statusButton.addEventListener("click", () => {
+        const nextIndex = (statusIndex + 1) % statuses.length;
+        beginStatusSwitch(nextIndex);
+      });
+
+      tasksPanel.addEventListener("click", (event) => {
+        if (event.target === tasksPanel) focusOrCreateLastTask();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key.toLowerCase() === "o" && event.shiftKey) {
+          overtimeEnabled = !overtimeEnabled;
+          screen.classList.toggle("overtime", overtimeEnabled);
+          panelNote.innerHTML = overtimeEnabled
+            ? "OVERTIME CONTINGENCY<br />PLEASE CONTINUE"
+            : panelMessages[statuses[statusIndex]];
+          updateDiagnostics();
+          triggerPrinterNote();
+        }
+      });
+
+      updateClock();
+      setInterval(updateClock, 1000);
+      schedulePixelShuffle();
+      updateDiagnostics();
+      scheduleDiagnostics();
+      createTask();
+    })();
+  </script>
+</body>
+</html>
