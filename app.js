@@ -556,6 +556,7 @@
 
       const isTitle = editor === noteTitle;
       const isSubtitle = editor === noteSubtitle;
+      const isBody = editor === noteBody;
 
       if (isTitle) {
         event.preventDefault();
@@ -566,6 +567,10 @@
       if (isSubtitle) {
         event.preventDefault();
         placeCaretAtEnd(noteBody);
+        return;
+      }
+
+      if (isBody) {
         return;
       }
 

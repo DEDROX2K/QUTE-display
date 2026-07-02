@@ -507,7 +507,7 @@ width: 86px;
 .book-shell {
   position: absolute;
   inset: 16px 18px 18px 18px;
-  border: 10px solid var(--ink);
+  /* border-top: 10px solid var(--ink); */
   border-radius: 14px;
   background: #ffffff;
   overflow: hidden;
@@ -524,7 +524,7 @@ width: 86px;
 .book-page-inner.single {
   width: 100%;
   height: 100%;
-  padding: 56px 72px 72px;
+  padding: 26px 100px;
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -556,7 +556,7 @@ width: 86px;
 .book-copy {
   margin: 0;
   font-family: var(--font-ui);
-  font-size: 44px;
+  font-size: 50px;
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.08em;
@@ -746,6 +746,7 @@ position: absolute;
   100% { opacity: 0; transform: translate(-50%, 125%) scale(0.95, 0.66) skewX(-8deg); }
 }
 
+@keyframes screenLineShine {
   0% {
     opacity: 0;
     transform: translateX(-140%) skewX(-18deg);
