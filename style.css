@@ -196,7 +196,6 @@ width: 86px;
   align-items: center;
   column-gap: 18px;
   flex: 0 0 auto;
-  cursor: grab;
   user-select: none;
 }
 
@@ -218,8 +217,12 @@ width: 86px;
   border-radius: 12px;
   background: var(--paper);
   appearance: none;
-  cursor: var(--square-cursor);
+  cursor: grab;
   position: relative;
+}
+
+.task-check:active {
+  cursor: grabbing;
 }
 
 .task-check::after {
@@ -245,6 +248,8 @@ width: 86px;
 .task-text {
   min-height: 1.1em;
   display: block;
+  width: 100%;
+  max-width: 100%;
   color: var(--white);
   caret-color: var(--white);
   outline: none;
@@ -256,6 +261,13 @@ width: 86px;
   line-height: 1.16;
   letter-spacing: 0.015em;
   transition: color 180ms steps(4, end), opacity 180ms steps(4, end), text-shadow 180ms steps(4, end), letter-spacing 180ms steps(4, end), filter 180ms steps(4, end);
+}
+
+.task-text.is-glitching {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  font-variant-ligatures: none;
 }
 
 .task-text *,
@@ -322,12 +334,38 @@ width: 86px;
   color: var(--white);
 }
 
-.status-panel {
+.status-topbar {
   position: absolute;
-  top: var(--tasks-top);
+  top: 30px;
   left: var(--status-left);
   width: var(--status-width);
-  height: 910px;
+  height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* background: var(--ink); */
+  /* color: var(--white); */
+  /* border-top: 4px solid #000000; */
+  border-bottom: 4px solid #000000;
+  z-index: 2;
+}
+
+.status-time {
+    /* font-family: var(--font-status); */
+    font-size: 60px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.status-panel {
+  position: absolute;
+  top: calc(var(--tasks-top) + 112px);
+  left: var(--status-left);
+  width: var(--status-width);
+  height: calc(910px - 112px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -336,7 +374,7 @@ width: 86px;
   background: var(--paper);
   color: var(--ink);
   padding: 0 0 28px;
-  border-top: 4px solid #000000;
+  /* border-top: 4px solid #000000; */
 }
 
 .notes-dock {

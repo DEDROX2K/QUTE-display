@@ -3,6 +3,7 @@
   const tasksPanel = document.getElementById("tasks");
   const statusButton = document.getElementById("statusButton");
   const diagnostics = document.getElementById("diagnostics");
+  const statusTime = document.getElementById("statusTime");
   const printerNote = document.getElementById("printerNote");
   const screen = document.querySelector(".screen");
   const noteTabs = Array.from(document.querySelectorAll(".note-tab"));
@@ -100,6 +101,15 @@
     const now = new Date();
     if (secondsHand) {
       secondsHand.style.transform = `translate(-10%, -50%) rotate(${now.getSeconds() * 6}deg)`;
+    }
+
+    if (statusTime) {
+      statusTime.textContent = now.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true
+      });
     }
   }
 
@@ -268,7 +278,7 @@
   function createTask(text = "", afterTask = null) {
     const task = document.createElement("div");
     task.className = "task";
-    task.draggable = true;
+    task.draggable = false;
 
     const check = document.createElement("button");
     check.className = "task-check";
@@ -302,6 +312,9 @@
       check.setAttribute("aria-pressed", String(done));
 
       if (getTaskValue(textElement) !== "") {
+        textElement.classList.remove("is-glitching");
+        void textElement.offsetWidth;
+        textElement.classList.add("is-glitching");
         animateTaskTextGlitch(textElement, 500);
       }
     });
@@ -360,7 +373,7 @@
       }
     });
 
-    task.addEventListener("dragstart", (event) => {
+    check.addEventListener("dragstart", (event) => {
       draggedTask = task;
       task.classList.add("is-dragging");
       if (event.dataTransfer) {
@@ -369,7 +382,7 @@
       }
     });
 
-    task.addEventListener("dragend", () => {
+    check.addEventListener("dragend", () => {
       draggedTask = null;
       task.classList.remove("is-dragging");
       document.querySelectorAll(".task.drag-over").forEach((item) => item.classList.remove("drag-over"));
