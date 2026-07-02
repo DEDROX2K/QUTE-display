@@ -2,7 +2,9 @@
     --paper: #f5f5f2;
     --ink: #000;
     --white: #fff;
-    --done: #5a5a5a;
+    --done: #727272;
+    --font-ui: "Martian Mono", "Courier New", monospace;
+    --font-status: "Bitcount Prop Single", "Martian Mono", monospace;
     --screen-width: 1400px;
     --screen-height: 1040px;
     --left-edge: 85px;
@@ -20,7 +22,7 @@
     --task-gap: 24px;
     --task-check: 42px;
     --task-delete: 32px;
-    --task-font: 38px;
+    --task-font: 45px;
     --task-line: 1.20;
   --square-cursor:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Crect x='4' y='4' width='28' height='28' fill='%23000' fill-opacity='0.5' stroke='%23fff' stroke-opacity='0.5' stroke-width='4'/%3E%3C/svg%3E")
@@ -49,7 +51,7 @@ body {
 body {
   display: grid;
   place-items: center;
-  font-family: "Azeret Mono", "Courier New", monospace;
+  font-family: var(--font-ui);
 }
 
 .screen {
@@ -110,8 +112,10 @@ body {
   background: var(--ink);
   color: var(--white);
   border-radius: 10px 10px 0 0;
-  font-size: 38px;
-  font-weight: 400;
+  font-family: var(--font-ui);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   line-height: 1;
   text-transform: uppercase;
   user-select: none;
@@ -184,9 +188,10 @@ body {
 }
 
 #clock {
-  font-size: 74px;
+  font-family: var(--font-ui);
+  font-size: 62px;
   font-weight: 700;
-  letter-spacing: -0.08em;
+  letter-spacing: -0.04em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -199,9 +204,9 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -281,15 +286,17 @@ body {
 
 .task-text {
   min-height: 1.1em;
+  display: block;
   color: var(--white);
   caret-color: var(--white);
   outline: none;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: var(--task-font);
-  font-weight: 500;
-  line-height: var(--task-line);
-  letter-spacing: 0.05em;
+  font-family: var(--font-ui);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.16;
+  letter-spacing: 0.015em;
 }
 
 .task-text *,
@@ -312,6 +319,7 @@ body {
   text-decoration: line-through;
   text-decoration-thickness: 4px;
   text-decoration-color: var(--done);
+  opacity: 0.84;
 }
 
 .task-delete {
@@ -321,7 +329,7 @@ body {
   border: 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.54);
-  font-family: "Azeret Mono", "Courier New", monospace;
+  font-family: var(--font-ui);
   font-size: 28px;
   line-height: 1;
   cursor: var(--square-cursor);
@@ -342,10 +350,10 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 18px;
+  gap: 14px;
   background: var(--paper);
   color: var(--ink);
-  padding: 0 0 20px;
+  padding: 0 0 28px;
 }
 
 .notes-dock {
@@ -371,11 +379,11 @@ body {
   align-items: center;
   justify-content: center;
   padding: 18px 0;
-  font-family: "Azeret Mono", "Courier New", monospace;
-  font-size: 20px;
+  font-family: var(--font-ui);
+  font-size: 18px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.01em;
   writing-mode: vertical-rl;
   text-orientation: mixed;
   cursor: var(--square-cursor);
@@ -426,16 +434,17 @@ body {
 
 .status-button {
   align-self: center;
-  margin: 0 auto;
+  margin: 0 auto 2px;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--ink);
-  font-family: "DotGothic16", "Azeret Mono", monospace;
-  font-size: 66px;
-  font-weight: 700;
-  line-height: 0.98;
-  letter-spacing: 0.03em;
+  font-family: var(--font-status);
+  font-size: 54px;
+  font-weight: 500;
+  font-variation-settings: "wght" 500;
+  line-height: 0.92;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
   white-space: nowrap;
   cursor: var(--square-cursor);
@@ -448,11 +457,11 @@ body {
 
 .diagnostics {
   align-self: center;
-  margin: 0 auto 4px;
+  margin: 0 auto 14px;
   min-height: 1.25em;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   line-height: 1.2;
   text-align: center;
   text-transform: uppercase;
@@ -517,7 +526,7 @@ body {
 
 .book-title {
   margin: 0 0 34px;
-  font-family: "Azeret Mono", "Courier New", monospace;
+  font-family: var(--font-ui);
   font-size: 78px;
   font-weight: 700;
   line-height: 0.94;
@@ -597,7 +606,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 22px;
-  font-family: "Azeret Mono", "Courier New", monospace;
+  font-family: var(--font-ui);
   font-size: 34px;
   font-weight: 700;
   text-transform: lowercase;
@@ -621,26 +630,27 @@ body {
   width: calc(100% - 26px);
   height: 286px;
   margin: 0 auto;
-  padding-right: 14px;
+  padding-top: 2px;
   overflow: hidden;
   flex: 0 0 auto;
 }
 
 .stripes-track {
   display: grid;
-  gap: 20px;
-  animation: stripeConveyor 2s linear infinite;
+  gap: 8px;
+  align-content: end;
+  height: 100%;
 }
 
 .stripes-track + .stripes-track {
-  margin-top: 10px;
+  display: none;
 }
 
 .stripe {
   display: block;
   width: 100%;
   background: var(--ink);
-  transform-origin: top center;
+  border-radius: 0;
 }
 
 .stripe-1 { height: 4px; }
@@ -707,11 +717,6 @@ body {
   68% { opacity: 1; transform: translate(-50%, -2%) scale(1, 1) skewX(0deg); }
   86% { opacity: 1; transform: translate(-50%, 12%) scale(1.03, 0.92) skewX(5deg); }
   100% { opacity: 0; transform: translate(-50%, 125%) scale(0.95, 0.66) skewX(-8deg); }
-}
-
-@keyframes stripeConveyor {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(calc(-50% - 5px)); }
 }
 
 @keyframes pageShuffleLeft {
