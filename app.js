@@ -90,6 +90,7 @@
   let activeNoteId = null;
   let activeNotePageIndex = 0;
   let bookShuffleTimeout = null;
+  let draggedTask = null;
 
   function pad(value) {
     return String(value).padStart(2, "0");
@@ -211,9 +212,63 @@
     }, 360);
   }
 
+  function getGlitchCharacter() {
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()[]{}<>/\\|_+-=~`'\";:,.?";
+    return characters[Math.floor(Math.random() * characters.length)];
+  }
+
+  function animateTaskTextGlitch(textElement, duration = 500) {
+    const originalText = textElement.textContent;
+    if (!originalText) return;
+
+    let startTime = null;
+    const characters = Array.from(originalText);
+
+    const frame = (timestamp) => {
+      if (startTime === null) {
+        startTime = timestamp;
+      }
+
+      const progress = Math.min(1, (timestamp - startTime) / duration);
+      const revealCount = Math.floor(progress * characters.length);
+      const scrambled = characters.map((character, index) => {
+        if (index < revealCount) {
+          return character;
+        }
+
+        return getGlitchCharacter();
+      }).join("");
+
+      textElement.textContent = scrambled;
+
+      if (progress < 1) {
+        window.requestAnimationFrame(frame);
+      } else {
+        textElement.textContent = originalText;
+      }
+    };
+
+    window.requestAnimationFrame(frame);
+  }
+
+  function moveTaskToTarget(task, targetTask, clientY) {
+    if (!task || !targetTask || task === targetTask) return;
+
+    const targetRect = targetTask.getBoundingClientRect();
+    const midpoint = targetRect.top + targetRect.height / 2;
+    const shouldInsertBefore = clientY < midpoint;
+
+    if (shouldInsertBefore) {
+      tasksPanel.insertBefore(task, targetTask);
+    } else {
+      tasksPanel.insertBefore(task, targetTask.nextSibling);
+    }
+  }
+
   function createTask(text = "", afterTask = null) {
     const task = document.createElement("div");
     task.className = "task";
+    task.draggable = true;
 
     const check = document.createElement("button");
     check.className = "task-check";
@@ -245,6 +300,10 @@
       event.stopPropagation();
       const done = task.classList.toggle("done");
       check.setAttribute("aria-pressed", String(done));
+
+      if (getTaskValue(textElement) !== "") {
+        animateTaskTextGlitch(textElement, 500);
+      }
     });
 
     deleteButton.addEventListener("click", (event) => {
@@ -299,6 +358,39 @@
         task.remove();
         placeCaretAtEnd(fallback.querySelector(".task-text"));
       }
+    });
+
+    task.addEventListener("dragstart", (event) => {
+      draggedTask = task;
+      task.classList.add("is-dragging");
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", "task");
+      }
+    });
+
+    task.addEventListener("dragend", () => {
+      draggedTask = null;
+      task.classList.remove("is-dragging");
+      document.querySelectorAll(".task.drag-over").forEach((item) => item.classList.remove("drag-over"));
+    });
+
+    task.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      if (!draggedTask || task === draggedTask) return;
+
+      task.classList.add("drag-over");
+      moveTaskToTarget(draggedTask, task, event.clientY);
+    });
+
+    task.addEventListener("dragleave", () => {
+      task.classList.remove("drag-over");
+    });
+
+    task.addEventListener("drop", (event) => {
+      event.preventDefault();
+      task.classList.remove("drag-over");
+      draggedTask = null;
     });
 
     task.append(check, content, deleteButton);
