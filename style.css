@@ -193,7 +193,7 @@ width: 86px;
 .task {
   display: grid;
   grid-template-columns: var(--task-check) 1fr var(--task-delete);
-  align-items: center;
+  /* align-items: center; */
   column-gap: 18px;
   flex: 0 0 auto;
   user-select: none;
@@ -256,7 +256,7 @@ width: 86px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-family: var(--font-ui);
-  font-size: 32px;
+  font-size: 42px;
   font-weight: 600;
   line-height: 1.16;
   letter-spacing: 0.015em;
@@ -536,7 +536,7 @@ width: 86px;
 .book-title {
   margin: 0;
   font-family: var(--font-ui);
-  font-size: 56px;
+  font-size: 80px;
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.04em;
@@ -544,22 +544,22 @@ width: 86px;
 
 .book-subtitle {
   margin: 0;
-  font-family: var(--font-ui);
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.35;
-  letter-spacing: 0.01em;
-  color: #515151;
-  min-height: 1.35em;
+  font-size: 34px;
+  /* line-height: 1.35; */
+  /* letter-spacing: 0.1em; */
+  /* font-style: italic; */
+  color: #797979;
+  min-height: -3.35em;
+  margin-bottom: 38px;
 }
 
 .book-copy {
   margin: 0;
   font-family: var(--font-ui);
-  font-size: 24px;
+  font-size: 44px;
   font-weight: 500;
-  line-height: 1.6;
-  letter-spacing: 0.01em;
+  line-height: 1;
+  letter-spacing: -0.08em;
   white-space: pre-wrap;
   min-height: 280px;
 }
@@ -577,23 +577,23 @@ width: 86px;
 }
 
 .checklist-tab {
-  position: absolute;
-  top: 42px;
-  left: -24px;
-  z-index: 3;
-  width: 114px;
-  height: 404px;
-  border: 6px solid var(--ink);
-  border-left: 0;
-  background: var(--paper);
-  color: var(--ink);
-  clip-path: polygon(0 0, 100% 0, 100% 94%, 62% 100%, 0 100%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 34px 0 34px 18px;
-  cursor: var(--square-cursor);
-  transition: transform 220ms steps(5, end);
+position: absolute;
+    top: 902px;
+    left: -24px;
+    z-index: 3;
+    width: 114px;
+    height: 134px;
+    border: 6px solid var(--ink);
+    border-left: 0;
+    background: var(--paper);
+    color: var(--ink);
+    clip-path: polygon(0 0, 100% 0, 100% 94%, 62% 100%, 0 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 34px 0 34px 18px;
+    cursor: var(--square-cursor);
+    transition: transform 220ms steps(5, end);
 }
 
 .checklist-tab:hover,
