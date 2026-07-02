@@ -1,5 +1,4 @@
 (() => {
-  const clock = document.getElementById("clock");
   const secondsHand = document.getElementById("secondsHand");
   const tasksPanel = document.getElementById("tasks");
   const statusButton = document.getElementById("statusButton");
@@ -98,8 +97,9 @@
 
   function updateClock() {
     const now = new Date();
-    clock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    secondsHand.style.transform = `translate(-50%, -100%) rotate(${now.getSeconds() * 6}deg)`;
+    if (secondsHand) {
+      secondsHand.style.transform = `translate(-10%, -50%) rotate(${now.getSeconds() * 6}deg)`;
+    }
   }
 
   function getTaskValue(textElement) {

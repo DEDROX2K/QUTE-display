@@ -15,19 +15,14 @@
     <div class="views-viewport">
       <div class="views-track">
         <section class="view checklist-view" aria-label="Checklist section">
-          <header class="task-header">NEXT TASK:</header>
-
-          <section class="clock-panel" aria-label="Current time">
-            <div class="seconds-dial" aria-hidden="true">
-              <div class="seconds-hand" id="secondsHand"></div>
-              <div class="seconds-center"></div>
+          <header class="task-header">
+            <span class="task-header-title">NEXT TASK:</span>
+            <div class="header-clock" aria-label="Clock indicator">
+              <div class="header-clock-dial" aria-hidden="true">
+                <div class="header-clock-hand" id="secondsHand"></div>
+              </div>
             </div>
-            <time id="clock">00:00</time>
-            <div class="rail-meta" aria-hidden="true">
-              <span class="rail-badge">MDR</span>
-              <span>04</span>
-            </div>
-          </section>
+          </header>
 
           <div class="center-divider" aria-hidden="true"></div>
 
