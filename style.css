@@ -746,6 +746,28 @@ position: absolute;
   100% { opacity: 0; transform: translate(-50%, 125%) scale(0.95, 0.66) skewX(-8deg); }
 }
 
+  0% {
+    opacity: 0;
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  8% {
+    opacity: 0.95;
+    transform: translateX(-20%) skewX(-18deg);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translateX(20%) skewX(-18deg);
+  }
+  92% {
+    opacity: 0.95;
+    transform: translateX(140%) skewX(-18deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(140%) skewX(-18deg);
+  }
+}
+
 @keyframes pageShuffleLeft {
   0% { transform: translateX(0) rotate(0deg); filter: blur(0); }
   25% { transform: translateX(-18px) rotate(-1deg); filter: blur(1px); }

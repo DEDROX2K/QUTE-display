@@ -1,5 +1,5 @@
 (() => {
-  const secondsHand = document.getElementById("secondsHand");
+  const engineRotor = document.getElementById("secondsHand");
   const tasksPanel = document.getElementById("tasks");
   const statusButton = document.getElementById("statusButton");
   const diagnostics = document.getElementById("diagnostics");
@@ -54,15 +54,24 @@
   let statusSwitchTimeout = null;
   let activeNoteId = null;
   let draggedTask = null;
+  let rotorAngle = 0;
+  let rotorVelocity = 3.2;
 
   function pad(value) {
     return String(value).padStart(2, "0");
   }
 
-  function updateClock() {
+  function updateEngineRotor() {
     const now = new Date();
-    if (secondsHand) {
-      secondsHand.style.transform = `translate(-10%, -50%) rotate(${now.getSeconds() * 6}deg)`;
+
+    if (engineRotor) {
+      const reversal = Math.random() < 0.18 ? -1 : 1;
+      const jitter = (Math.random() - 0.5) * 34;
+      const surge = Math.random() * 19 + 8;
+      rotorVelocity = rotorVelocity * 0.7 + surge * 0.3;
+      rotorVelocity *= reversal;
+      rotorAngle = (rotorAngle + rotorVelocity + jitter) % 360;
+      engineRotor.style.transform = `translate(-10%, -50%) rotate(${rotorAngle}deg)`;
     }
 
     if (statusTime) {
@@ -108,6 +117,42 @@
       tasksPanel.scrollTop += taskRect.bottom - panelRect.bottom + padding;
     } else if (taskRect.top < panelRect.top + padding) {
       tasksPanel.scrollTop -= panelRect.top + padding - taskRect.top;
+    }
+  }
+
+  function getScrollableAncestor(element) {
+    let current = element?.parentElement;
+
+    while (current) {
+      const style = window.getComputedStyle(current);
+      const overflowY = style.overflowY;
+      const canScroll = overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay";
+      if (canScroll && current.scrollHeight > current.clientHeight) {
+        return current;
+      }
+      current = current.parentElement;
+    }
+
+    return null;
+  }
+
+  function keepEditorInView(element) {
+    const scrollContainer = getScrollableAncestor(element);
+    if (!scrollContainer) return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const lineHeight = parseFloat(getComputedStyle(element).lineHeight) || 32;
+    const buffer = lineHeight * 4;
+
+    if (rect.bottom > containerRect.bottom - buffer) {
+      scrollContainer.scrollTop += rect.bottom - (containerRect.bottom - buffer);
+    } else if (rect.top < containerRect.top + buffer) {
+      scrollContainer.scrollTop -= containerRect.top + buffer - rect.top;
     }
   }
 
@@ -300,6 +345,7 @@
     textElement.addEventListener("input", () => {
       syncEmptyState(textElement);
       keepTaskInView(task);
+      window.requestAnimationFrame(() => keepEditorInView(textElement));
     });
 
     textElement.addEventListener("paste", (event) => {
@@ -312,6 +358,7 @@
 
     textElement.addEventListener("focus", () => {
       keepTaskInView(task);
+      window.requestAnimationFrame(() => keepEditorInView(textElement));
     });
 
     textElement.addEventListener("keydown", (event) => {
@@ -320,6 +367,7 @@
         const nextTask = createTask("", task);
         placeCaretAtEnd(nextTask.querySelector(".task-text"));
         keepTaskInView(nextTask);
+        window.requestAnimationFrame(() => keepEditorInView(nextTask.querySelector(".task-text")));
         return;
       }
 
@@ -491,6 +539,7 @@
     editor.addEventListener("input", () => {
       syncEmptyState(editor);
       saveActiveNote();
+      window.requestAnimationFrame(() => keepEditorInView(editor));
     });
 
     editor.addEventListener("paste", (event) => {
@@ -499,6 +548,33 @@
       insertPlainText(text);
       syncEmptyState(editor);
       saveActiveNote();
+      window.requestAnimationFrame(() => keepEditorInView(editor));
+    });
+
+    editor.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+
+      const isTitle = editor === noteTitle;
+      const isSubtitle = editor === noteSubtitle;
+
+      if (isTitle) {
+        event.preventDefault();
+        placeCaretAtEnd(noteSubtitle);
+        return;
+      }
+
+      if (isSubtitle) {
+        event.preventDefault();
+        placeCaretAtEnd(noteBody);
+        return;
+      }
+
+      if (event.shiftKey) {
+        return;
+      }
+
+      event.preventDefault();
+      placeCaretAtEnd(noteBody);
     });
   });
 
@@ -512,8 +588,8 @@
     }
   });
 
-  updateClock();
-  window.setInterval(updateClock, 1000);
+  updateEngineRotor();
+  window.setInterval(updateEngineRotor, 1000);
   schedulePixelShuffle();
   updateDiagnostics();
   scheduleDiagnostics();
