@@ -10,13 +10,10 @@
   const bookView = document.getElementById("bookView");
   const checklistReturn = document.getElementById("checklistReturn");
   const bookShell = document.querySelector(".book-shell");
-  const bookLeftTitle = document.getElementById("bookLeftTitle");
-  const bookLeftCopy = document.getElementById("bookLeftCopy");
-  const bookRightTitle = document.getElementById("bookRightTitle");
-  const bookRightCopy = document.getElementById("bookRightCopy");
-  const bookPager = document.getElementById("bookPager");
-  const bookPagerLabel = document.getElementById("bookPagerLabel");
-  const bookEditors = [bookLeftTitle, bookLeftCopy, bookRightTitle, bookRightCopy];
+  const noteTitle = document.getElementById("noteTitle");
+  const noteSubtitle = document.getElementById("noteSubtitle");
+  const noteBody = document.getElementById("noteBody");
+  const bookEditors = [noteTitle, noteSubtitle, noteBody];
   const statuses = ["AVAILABLE", "REFINING", "WELLNESS", "ON BREAK", "AWAITING INPUT"];
   const diagnosticTemplates = [
     "CPU 43%",
@@ -37,60 +34,25 @@
   ];
   const notes = {
     "note-1": {
-      pages: [
-        {
-          leftTitle: "",
-          leftCopy: "",
-          rightTitle: "",
-          rightCopy: ""
-        },
-        {
-          leftTitle: "",
-          leftCopy: "",
-          rightTitle: "",
-          rightCopy: ""
-        }
-      ]
+      title: "",
+      subtitle: "",
+      body: ""
     },
     "note-2": {
-      pages: [
-        {
-          leftTitle: "",
-          leftCopy: "",
-          rightTitle: "",
-          rightCopy: ""
-        },
-        {
-          leftTitle: "",
-          leftCopy: "",
-          rightTitle: "",
-          rightCopy: ""
-        }
-      ]
+      title: "",
+      subtitle: "",
+      body: ""
     },
     "note-3": {
-      pages: [
-        {
-          leftTitle: "",
-          leftCopy: "",
-          rightTitle: "",
-          rightCopy: ""
-        },
-        {
-          leftTitle: "",
-          leftCopy: "",
-          rightTitle: "",
-          rightCopy: ""
-        }
-      ]
+      title: "",
+      subtitle: "",
+      body: ""
     }
   };
 
   let statusIndex = 0;
   let statusSwitchTimeout = null;
   let activeNoteId = null;
-  let activeNotePageIndex = 0;
-  let bookShuffleTimeout = null;
   let draggedTask = null;
 
   function pad(value) {
@@ -454,39 +416,32 @@
     }, delay);
   }
 
-  function renderBookPage(noteId, pageIndex) {
+  function renderNoteEditor(noteId) {
     const note = notes[noteId];
     if (!note) return;
-    const page = note.pages[pageIndex];
-    if (!page) return;
 
-    bookLeftTitle.textContent = page.leftTitle;
-    bookLeftCopy.textContent = page.leftCopy;
-    bookRightTitle.textContent = page.rightTitle;
-    bookRightCopy.textContent = page.rightCopy;
-    syncEmptyState(bookLeftTitle);
-    syncEmptyState(bookLeftCopy);
-    syncEmptyState(bookRightTitle);
-    syncEmptyState(bookRightCopy);
-    bookPagerLabel.textContent = `page ${pageIndex + 1}`;
+    noteTitle.textContent = note.title;
+    noteSubtitle.textContent = note.subtitle;
+    noteBody.textContent = note.body;
+    syncEmptyState(noteTitle);
+    syncEmptyState(noteSubtitle);
+    syncEmptyState(noteBody);
   }
 
-  function saveActiveBookPage() {
+  function saveActiveNote() {
     if (!activeNoteId) return;
 
-    const page = notes[activeNoteId]?.pages[activeNotePageIndex];
-    if (!page) return;
+    const note = notes[activeNoteId];
+    if (!note) return;
 
-    page.leftTitle = bookLeftTitle.textContent;
-    page.leftCopy = bookLeftCopy.textContent;
-    page.rightTitle = bookRightTitle.textContent;
-    page.rightCopy = bookRightCopy.textContent;
+    note.title = noteTitle.textContent;
+    note.subtitle = noteSubtitle.textContent;
+    note.body = noteBody.textContent;
   }
 
   function closeNotes() {
-    saveActiveBookPage();
+    saveActiveNote();
     activeNoteId = null;
-    activeNotePageIndex = 0;
     screen.classList.remove("book-mode");
     bookView.setAttribute("aria-hidden", "true");
 
@@ -500,10 +455,9 @@
     const note = notes[noteId];
     if (!note) return;
 
-    saveActiveBookPage();
+    saveActiveNote();
     activeNoteId = noteId;
-    activeNotePageIndex = 0;
-    renderBookPage(noteId, activeNotePageIndex);
+    renderNoteEditor(noteId);
     screen.classList.add("book-mode");
     bookView.setAttribute("aria-hidden", "false");
 
@@ -512,29 +466,6 @@
       tab.classList.toggle("is-active", isActive);
       tab.setAttribute("aria-expanded", String(isActive));
     });
-  }
-
-  function advanceBookPage() {
-    if (!activeNoteId) return;
-
-    const note = notes[activeNoteId];
-    if (!note || note.pages.length <= 1) return;
-
-    saveActiveBookPage();
-    activeNotePageIndex = (activeNotePageIndex + 1) % note.pages.length;
-    renderBookPage(activeNoteId, activeNotePageIndex);
-
-    bookShell.classList.remove("is-shuffling");
-    void bookShell.offsetWidth;
-    bookShell.classList.add("is-shuffling");
-
-    if (bookShuffleTimeout) {
-      window.clearTimeout(bookShuffleTimeout);
-    }
-
-    bookShuffleTimeout = window.setTimeout(() => {
-      bookShell.classList.remove("is-shuffling");
-    }, 380);
   }
 
   statusButton.addEventListener("click", () => {
@@ -559,7 +490,7 @@
 
     editor.addEventListener("input", () => {
       syncEmptyState(editor);
-      saveActiveBookPage();
+      saveActiveNote();
     });
 
     editor.addEventListener("paste", (event) => {
@@ -567,7 +498,7 @@
       const text = event.clipboardData?.getData("text/plain") ?? "";
       insertPlainText(text);
       syncEmptyState(editor);
-      saveActiveBookPage();
+      saveActiveNote();
     });
   });
 
@@ -575,17 +506,9 @@
     closeNotes();
   });
 
-  bookPager.addEventListener("click", () => {
-    advanceBookPage();
-  });
-
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && activeNoteId) {
       closeNotes();
-    }
-
-    if (event.key === "ArrowRight" && activeNoteId && !event.target.closest?.(".book-editable")) {
-      advanceBookPage();
     }
   });
 

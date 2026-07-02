@@ -97,55 +97,35 @@
           </button>
 
           <div class="book-shell">
-            <article class="book-page book-page-left">
-              <div class="book-page-inner">
+            <article class="book-page book-page-single">
+              <div class="book-page-inner single">
                 <h2
                   class="book-title book-editable"
-                  id="bookLeftTitle"
+                  id="noteTitle"
                   contenteditable="true"
                   spellcheck="false"
                   role="textbox"
-                  aria-label="Left page heading"
-                  data-placeholder="Heading"></h2>
+                  aria-label="Note title"
+                  data-placeholder="Title"></h2>
+                <div
+                  class="book-subtitle book-editable"
+                  id="noteSubtitle"
+                  contenteditable="true"
+                  spellcheck="false"
+                  role="textbox"
+                  aria-label="Note subtitle"
+                  data-placeholder="Subtitle"></div>
                 <div
                   class="book-copy book-editable"
-                  id="bookLeftCopy"
+                  id="noteBody"
                   contenteditable="true"
                   spellcheck="false"
                   role="textbox"
-                  aria-label="Left page notes"
-                  data-placeholder="Type your notes here"></div>
-              </div>
-            </article>
-
-            <div class="book-spine" aria-hidden="true"></div>
-
-            <article class="book-page book-page-right">
-              <div class="book-page-inner dark">
-                <h2
-                  class="book-title book-editable inverted"
-                  id="bookRightTitle"
-                  contenteditable="true"
-                  spellcheck="false"
-                  role="textbox"
-                  aria-label="Right page heading"
-                  data-placeholder="Heading"></h2>
-                <div
-                  class="book-copy book-editable inverted"
-                  id="bookRightCopy"
-                  contenteditable="true"
-                  spellcheck="false"
-                  role="textbox"
-                  aria-label="Right page notes"
-                  data-placeholder="Type your notes here"></div>
+                  aria-label="Note content"
+                  data-placeholder="Start writing..."></div>
               </div>
             </article>
           </div>
-
-          <button id="bookPager" class="book-pager" type="button" aria-label="Next page">
-            <span id="bookPagerLabel">page 1</span>
-            <span class="book-pager-arrow" aria-hidden="true">›</span>
-          </button>
         </section>
       </div>
     </div>
