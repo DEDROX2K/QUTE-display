@@ -15,79 +15,226 @@
     <div class="views-viewport">
       <div class="views-track">
         <section class="view checklist-view" aria-label="Checklist section">
-          <header class="task-header">
-            <span class="task-header-title">NEXT TASK:</span>
-            <div class="header-clock" aria-label="Clock indicator">
-              <div class="header-clock-dial" aria-hidden="true">
-                <div class="header-clock-hand" id="secondsHand"></div>
-              </div>
+          <div class="checklist-viewport">
+            <div class="checklist-pages">
+              <section class="checklist-screen" aria-label="Checklist dashboard">
+                <header class="task-header">
+                  <span class="task-header-title">NEXT TASK:</span>
+                  <div class="header-clock" aria-label="Clock indicator">
+                    <div class="header-clock-dial" aria-hidden="true">
+                      <div class="header-clock-hand" id="secondsHand"></div>
+                    </div>
+                  </div>
+                </header>
+
+                <div class="center-divider" aria-hidden="true"></div>
+
+                <div class="checklist-stack">
+                  <main id="tasks" class="tasks-panel" aria-label="Task checklist"></main>
+                </div>
+
+                <div class="notes-dock" aria-label="Quick notes">
+                  <button class="note-tab note-tab-1" type="button" data-note="note-1" aria-controls="bookView" aria-expanded="false">NOTE 1</button>
+                  <button class="note-tab note-tab-2" type="button" data-note="note-2" aria-controls="bookView" aria-expanded="false">NOTE 2</button>
+                  <button class="note-tab note-tab-3" type="button" data-note="note-3" aria-controls="bookView" aria-expanded="false">NOTE 3</button>
+                  <button class="note-tab note-tab-4" type="button" data-note="note-4" aria-controls="bookView" aria-expanded="false">NOTE 4</button>
+                  <button class="note-tab note-tab-5" type="button" data-note="note-5" aria-controls="bookView" aria-expanded="false">NOTE 5</button>
+                </div>
+
+                <div class="status-topbar" aria-label="System clock">
+                  <div class="status-time" id="statusTime">12:00:00 AM</div>
+                </div>
+
+                <aside class="status-panel" aria-label="Availability status">
+                  <div class="model-orbit" aria-label="3D profile model">
+                    <model-viewer
+                      class="avatar-viewer"
+                      src="./threeD/coin.glb"
+                      alt="3D model"
+                      auto-rotate
+                      rotation-per-second="10deg"
+                      camera-controls
+                      disable-pan
+                      disable-zoom
+                      interaction-prompt="none"
+                      shadow-intensity="0"
+                      shadow-softness="0"
+                      exposure="0"
+                      lighting-intensity="0"
+                      environment-image="neutral"
+                      camera-orbit="30deg 78deg auto"
+                      field-of-view="28deg">
+                    </model-viewer>
+                  </div>
+                  <button
+                    id="statusButton"
+                    class="status-button music-toggle-button"
+                    type="button"
+                    aria-controls="musicScreen"
+                    aria-expanded="false">
+                    MUSIC CNTRL
+                  </button>
+                  <div class="diagnostics" id="diagnostics">AVAILABLE CPU 43%</div>
+                  <div class="stripes" aria-hidden="true">
+                    <div class="stripes-track">
+                      <span class="stripe stripe-1"></span>
+                      <span class="stripe stripe-2"></span>
+                      <span class="stripe stripe-3"></span>
+                      <span class="stripe stripe-4"></span>
+                      <span class="stripe stripe-5"></span>
+                      <span class="stripe stripe-6"></span>
+                      <span class="stripe stripe-7"></span>
+                      <span class="stripe stripe-8"></span>
+                      <span class="stripe stripe-9"></span>
+                    </div>
+                    <div class="stripes-track" aria-hidden="true">
+                      <span class="stripe stripe-1"></span>
+                      <span class="stripe stripe-2"></span>
+                      <span class="stripe stripe-3"></span>
+                      <span class="stripe stripe-4"></span>
+                      <span class="stripe stripe-5"></span>
+                      <span class="stripe stripe-6"></span>
+                      <span class="stripe stripe-7"></span>
+                      <span class="stripe stripe-8"></span>
+                      <span class="stripe stripe-9"></span>
+                    </div>
+                  </div>
+                </aside>
+
+                <div class="printer-note" id="printerNote">WELLNESS BULLETIN READY FOR COLLECTION</div>
+              </section>
+
+              <section id="musicScreen" class="music-screen" aria-label="Music controls screen" aria-hidden="true">
+                <button id="musicReturn" class="music-return" type="button" aria-label="Return to checklist">
+                  <span class="music-return-label">CHECKLIST</span>
+                  <span class="music-return-arrow" aria-hidden="true">^</span>
+                </button>
+
+                <div class="music-screen-shell">
+                  <section class="media-deck" aria-label="Retro media deck">
+                    <div class="media-deck-tech sr-only" aria-hidden="true">
+                      <span class="media-deck-source" id="nowPlayingSource">NO SESSION</span>
+                      <span class="media-deck-status-chip" id="bridgeStatusChip">BRIDGE DISCONNECTED</span>
+                      <span class="media-deck-status-chip" id="sessionStatusChip">NO SESSION</span>
+                      <span class="media-deck-status-chip" id="playbackStatusChip">PAUSED</span>
+                      <div class="media-deck-thumb" id="nowPlayingArtwork"><span class="media-deck-thumb-glyph">--</span></div>
+                      <p class="media-deck-state-line">
+                        <span id="nowPlayingStatus">PAUSED</span>
+                        <span class="media-deck-separator">/</span>
+                        <span id="nowPlayingDeckHint">SYSTEM BRIDGE</span>
+                      </p>
+                      <div class="media-deck-progress-block">
+                        <div class="media-deck-progress-track" aria-hidden="true">
+                          <span class="media-deck-progress-fill" id="nowPlayingProgressFill"></span>
+                        </div>
+                        <div class="media-deck-times">
+                          <span id="nowPlayingCurrentTime">00:00</span>
+                          <span id="nowPlayingDuration">00:00</span>
+                        </div>
+                      </div>
+                      <span id="supportedCommandsLabel">SUPPORTED: NONE</span>
+                    </div>
+
+                    <article class="media-deck-panel" id="nowPlayingPanel" aria-live="polite">
+                      <h2 class="media-deck-title" id="nowPlayingTitle"></h2>
+
+                      <div class="media-deck-artist-stack">
+                        <div class="media-deck-artist-icon" aria-hidden="true">
+                          <span class="media-deck-artist-icon-head"></span>
+                          <span class="media-deck-artist-icon-body"></span>
+                        </div>
+                        <p class="media-deck-artist" id="nowPlayingArtist"></p>
+                      </div>
+
+                      <section class="media-deck-eq" aria-label="Equalizer">
+                        <div class="media-deck-eq-topline">
+                          <span class="media-deck-eq-title">EQUALIZER</span>
+                          <button id="musicEqResetButton" class="media-deck-eq-reset" type="button">RESET</button>
+                        </div>
+                        <div class="media-deck-mixer">
+                          <div class="media-deck-eq-band" data-band="0">
+                            <span class="media-deck-eq-value" id="musicEqValue0">+0 dB</span>
+                            <div class="media-deck-eq-track">
+                              <span class="media-deck-mixer-rail rail-1"></span>
+                              <span class="media-deck-mixer-knob knob-1" data-band="0"></span>
+                            </div>
+                            <span class="media-deck-eq-label">60 Hz</span>
+                          </div>
+                          <div class="media-deck-eq-band" data-band="1">
+                            <span class="media-deck-eq-value" id="musicEqValue1">+0 dB</span>
+                            <div class="media-deck-eq-track">
+                              <span class="media-deck-mixer-rail rail-2"></span>
+                              <span class="media-deck-mixer-knob knob-2" data-band="1"></span>
+                            </div>
+                            <span class="media-deck-eq-label">170 Hz</span>
+                          </div>
+                          <div class="media-deck-eq-band" data-band="2">
+                            <span class="media-deck-eq-value" id="musicEqValue2">+0 dB</span>
+                            <div class="media-deck-eq-track">
+                              <span class="media-deck-mixer-rail rail-3"></span>
+                              <span class="media-deck-mixer-knob knob-3" data-band="2"></span>
+                            </div>
+                            <span class="media-deck-eq-label">310 Hz</span>
+                          </div>
+                          <div class="media-deck-eq-band" data-band="3">
+                            <span class="media-deck-eq-value" id="musicEqValue3">+0 dB</span>
+                            <div class="media-deck-eq-track">
+                              <span class="media-deck-mixer-rail rail-4"></span>
+                              <span class="media-deck-mixer-knob knob-4" data-band="3"></span>
+                            </div>
+                            <span class="media-deck-eq-label">600 Hz</span>
+                          </div>
+                          <div class="media-deck-eq-band" data-band="4">
+                            <span class="media-deck-eq-value" id="musicEqValue4">+0 dB</span>
+                            <div class="media-deck-eq-track">
+                              <span class="media-deck-mixer-rail rail-5"></span>
+                              <span class="media-deck-mixer-knob knob-5" data-band="4"></span>
+                            </div>
+                            <span class="media-deck-eq-label">1 kHz</span>
+                          </div>
+                          <div class="media-deck-eq-band" data-band="5">
+                            <span class="media-deck-eq-value" id="musicEqValue5">+0 dB</span>
+                            <div class="media-deck-eq-track">
+                              <span class="media-deck-mixer-rail rail-6"></span>
+                              <span class="media-deck-mixer-knob knob-6" data-band="5"></span>
+                            </div>
+                            <span class="media-deck-eq-label">3 kHz</span>
+                          </div>
+                          <div class="media-deck-eq-band" data-band="6">
+                            <span class="media-deck-eq-value" id="musicEqValue6">+0 dB</span>
+                            <div class="media-deck-eq-track">
+                              <span class="media-deck-mixer-rail rail-7"></span>
+                              <span class="media-deck-mixer-knob knob-7" data-band="6"></span>
+                            </div>
+                            <span class="media-deck-eq-label">8 kHz</span>
+                          </div>
+                        </div>
+                      </section>
+
+                      <div class="media-deck-controls media-deck-controls-trio" aria-label="Playback controls">
+                        <button id="musicPreviousButton" class="media-deck-button media-deck-button-pill media-deck-button-icon" type="button" aria-label="Previous track">
+                          <span class="sr-only">PREVIOUS</span>
+                        </button>
+                        <button id="musicPlayPauseButton" class="media-deck-button media-deck-button-pill media-deck-button-primary media-deck-button-play" type="button" aria-label="Play or pause">
+                          <span id="nowPlayingActionLabel" class="sr-only" aria-hidden="true">PLAY</span>
+                        </button>
+                        <button id="musicNextButton" class="media-deck-button media-deck-button-pill media-deck-button-icon media-deck-button-icon-next" type="button" aria-label="Next track">
+                          <span class="sr-only">NEXT</span>
+                        </button>
+                      </div>
+
+                      <label class="media-deck-output-wrap" for="musicOutputSlider">
+                        <span class="sr-only">OUTPUT</span>
+                        <div class="media-deck-output-shell" aria-hidden="true"></div>
+                        <input id="musicOutputSlider" class="media-deck-output-slider" type="range" min="0" max="8" step="1" value="5" aria-label="Output level" />
+                        <span class="sr-only" id="musicOutputReadout">LVL 5</span>
+                      </label>
+                    </article>
+                  </section>
+                </div>
+              </section>
             </div>
-          </header>
-
-          <div class="center-divider" aria-hidden="true"></div>
-
-          <main id="tasks" class="tasks-panel" aria-label="Task checklist"></main>
-
-          <div class="notes-dock" aria-label="Quick notes">
-            <button class="note-tab note-tab-1" type="button" data-note="note-1" aria-controls="bookView" aria-expanded="false">NOTE 1</button>
-            <button class="note-tab note-tab-2" type="button" data-note="note-2" aria-controls="bookView" aria-expanded="false">NOTE 2</button>
-            <button class="note-tab note-tab-3" type="button" data-note="note-3" aria-controls="bookView" aria-expanded="false">NOTE 3</button>
           </div>
-
-          <div class="status-topbar" aria-label="System clock">
-            <div class="status-time" id="statusTime">12:00:00 AM</div>
-          </div>
-
-          <aside class="status-panel" aria-label="Availability status">
-            <div class="model-orbit" aria-label="3D profile model">
-              <model-viewer
-                class="avatar-viewer"
-                src="./threeD/coin.glb"
-                alt="3D model"
-                auto-rotate
-                rotation-per-second="10deg"
-                camera-controls
-                disable-pan
-                disable-zoom
-                interaction-prompt="none"
-                shadow-intensity="0"
-                shadow-softness="0"
-                exposure="0"
-                lighting-intensity="0"
-                environment-image="neutral"
-                camera-orbit="30deg 78deg auto"
-                field-of-view="28deg">
-              </model-viewer>
-            </div>
-            <button id="statusButton" class="status-button" type="button">AVAILABLE</button>
-            <div class="diagnostics" id="diagnostics">AVAILABLE CPU 43%</div>
-            <div class="stripes" aria-hidden="true">
-              <div class="stripes-track">
-                <span class="stripe stripe-1"></span>
-                <span class="stripe stripe-2"></span>
-                <span class="stripe stripe-3"></span>
-                <span class="stripe stripe-4"></span>
-                <span class="stripe stripe-5"></span>
-                <span class="stripe stripe-6"></span>
-                <span class="stripe stripe-7"></span>
-                <span class="stripe stripe-8"></span>
-                <span class="stripe stripe-9"></span>
-              </div>
-              <div class="stripes-track" aria-hidden="true">
-                <span class="stripe stripe-1"></span>
-                <span class="stripe stripe-2"></span>
-                <span class="stripe stripe-3"></span>
-                <span class="stripe stripe-4"></span>
-                <span class="stripe stripe-5"></span>
-                <span class="stripe stripe-6"></span>
-                <span class="stripe stripe-7"></span>
-                <span class="stripe stripe-8"></span>
-                <span class="stripe stripe-9"></span>
-              </div>
-            </div>
-          </aside>
-
-          <div class="printer-note" id="printerNote">WELLNESS BULLETIN READY FOR COLLECTION</div>
         </section>
 
         <section id="bookView" class="view book-view" aria-label="Book section" aria-hidden="true">
@@ -95,6 +242,22 @@
             <span class="checklist-tab-label">CHECKLIST</span>
             <span class="checklist-tab-arrow" aria-hidden="true">«</span>
           </button>
+
+          <div class="reading-mode-dock" id="readingModeDock">
+            <div class="reading-mode-hotspot" aria-hidden="true"></div>
+            <button id="readingModeToggle" class="reading-mode-toggle" type="button" aria-pressed="false" aria-label="Toggle reading mode auto-scroll">
+              READ
+            </button>
+          </div>
+
+          <div class="notepad-popdown" id="notepadPopdown">
+            <div class="notepad-popdown-notch"></div>
+            <div class="notepad-popdown-trigger" id="notepadPopdownTrigger"></div>
+            <div class="notepad-popdown-panel" id="notepadPopdownPanel">
+              <span class="notepad-popdown-label">HALF INVERT:</span>
+              <button class="notepad-popdown-toggle" id="plainTextToggle" type="button" aria-pressed="false">OFF</button>
+            </div>
+          </div>
 
           <div class="book-shell">
             <article class="book-page book-page-single">
@@ -123,14 +286,26 @@
                   role="textbox"
                   aria-label="Note content"
                   data-placeholder="Start writing..."></div>
+                <div class="book-editor-spacer" aria-hidden="true"></div>
               </div>
             </article>
+            <div class="book-half-invert" aria-hidden="true"></div>
           </div>
         </section>
       </div>
     </div>
   </div>
 
+  <div id="systemToastLayer" class="system-toast-layer" hidden>
+    <article class="system-toast" id="systemToast" role="status" aria-live="assertive">
+      <p class="system-toast-kind" id="systemToastKind">INCOMING</p>
+      <h2 class="system-toast-title" id="systemToastTitle"></h2>
+      <p class="system-toast-body" id="systemToastBody"></p>
+    </article>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
