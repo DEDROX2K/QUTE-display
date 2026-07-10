@@ -8,6 +8,7 @@
   const musicMixerKnobs = Array.from(document.querySelectorAll(".media-deck-mixer-knob"));
   const musicEqResetButton = document.getElementById("musicEqResetButton");
   const musicEqValues = Array.from({ length: 7 }, (_, index) => document.getElementById(`musicEqValue${index}`));
+  const musicEqBands = Array.from(document.querySelectorAll(".media-deck-eq-band"));
   const musicReturn = document.getElementById("musicReturn");
   const diagnostics = document.getElementById("diagnostics");
   const statusTime = document.getElementById("statusTime");
@@ -137,7 +138,7 @@
   const musicMixerBaseLevels = [118, 66, 96, 56, 84, 134, 154];
   const musicMixerDefaultLevels = [...musicMixerBaseLevels];
   let activeMixerBand = null;
-  let musicMixerAnimationFrame = null;
+  let activeMixerKnob = null;
   let bridgeConnected = false;
   let bridgeLastError = "";
   let mediaEventSource = null;
@@ -218,13 +219,10 @@
     return Math.max(18, Math.min(162, Math.round(Number(top) || 0)));
   }
 
-  function renderMusicMixer(timestamp = window.performance.now()) {
+  function renderMusicMixer() {
     if (!musicMixerKnobs.length) return;
-
-    const isPlaying = String(lastMediaState?.status ?? "paused").toLowerCase() === "playing";
     musicMixerKnobs.forEach((knob, index) => {
-      const animatedOffset = isPlaying ? Math.sin((timestamp * 0.006) + (index * 0.9)) * 6 : 0;
-      const top = clampMusicMixerTop(musicMixerBaseLevels[index] + animatedOffset);
+      const top = clampMusicMixerTop(musicMixerBaseLevels[index]);
       knob.style.top = `${top}px`;
       if (musicEqValues[index]) {
         const normalized = ((90 - musicMixerBaseLevels[index]) / 6);
@@ -235,31 +233,69 @@
     });
   }
 
-  function startMusicMixerLoop() {
-    if (!musicMixerKnobs.length || musicMixerAnimationFrame !== null) return;
-
-    const step = (timestamp) => {
-      renderMusicMixer(timestamp);
-      musicMixerAnimationFrame = window.requestAnimationFrame(step);
-    };
-
-    musicMixerAnimationFrame = window.requestAnimationFrame(step);
-  }
-
   function updateMusicMixerBandFromPointer(clientY) {
     if (activeMixerBand === null || !musicMixer) return;
 
     const rect = musicMixer.getBoundingClientRect();
     const localTop = clientY - rect.top - 11;
     musicMixerBaseLevels[activeMixerBand] = clampMusicMixerTop(localTop);
-    renderMusicMixer(window.performance.now());
+    renderMusicMixer();
   }
 
   function resetMusicMixerBands() {
     musicMixerDefaultLevels.forEach((level, index) => {
       musicMixerBaseLevels[index] = level;
     });
-    renderMusicMixer(window.performance.now());
+    renderMusicMixer();
+  }
+
+  function setEqProximity(clientX, clientY) {
+    if (!musicEqBands.length || !musicMixer) return;
+
+    let nearestBand = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    musicEqBands.forEach((band) => {
+      const track = band.querySelector(".media-deck-eq-track");
+      if (!track) return;
+
+      const rect = track.getBoundingClientRect();
+      const centerX = rect.left + (rect.width / 2);
+      const centerY = rect.top + (rect.height / 2);
+      const distance = Math.hypot(clientX - centerX, clientY - centerY);
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestBand = band;
+      }
+    });
+
+    musicEqBands.forEach((band) => {
+      band.classList.remove("is-near", "is-nearest");
+    });
+
+    if (nearestBand && nearestDistance <= 170) {
+      nearestBand.classList.add("is-nearest");
+    }
+
+    musicEqBands.forEach((band) => {
+      if (band === nearestBand) return;
+      const track = band.querySelector(".media-deck-eq-track");
+      if (!track) return;
+      const rect = track.getBoundingClientRect();
+      const centerX = rect.left + (rect.width / 2);
+      const centerY = rect.top + (rect.height / 2);
+      const distance = Math.hypot(clientX - centerX, clientY - centerY);
+      if (distance <= 120) {
+        band.classList.add("is-near");
+      }
+    });
+  }
+
+  function clearEqProximity() {
+    musicEqBands.forEach((band) => {
+      band.classList.remove("is-near", "is-nearest");
+    });
   }
 
   function setMusicCardTilt(clientX, clientY) {
@@ -2276,28 +2312,68 @@
 
   if (musicMixer && musicMixerKnobs.length) {
     renderMusicMixer();
-    startMusicMixerLoop();
+
+    const beginEqDrag = (band, knob, event) => {
+      event.preventDefault();
+      activeMixerBand = band;
+      activeMixerKnob = knob;
+      knob.classList.add("is-dragging");
+      document.body.classList.add("eq-dragging");
+      knob.setPointerCapture?.(event.pointerId);
+      setEqProximity(event.clientX, event.clientY);
+      updateMusicMixerBandFromPointer(event.clientY);
+    };
+
+    musicEqBands.forEach((band) => {
+      const knob = band.querySelector(".media-deck-mixer-knob");
+      const track = band.querySelector(".media-deck-eq-track");
+      const bandIndex = Number.parseInt(band.dataset.band ?? "", 10);
+      if (Number.isNaN(bandIndex) || !knob || !track) return;
+
+      knob.addEventListener("pointerdown", (event) => {
+        beginEqDrag(bandIndex, knob, event);
+      });
+
+      track.addEventListener("pointerdown", (event) => {
+        beginEqDrag(bandIndex, knob, event);
+      });
+    });
 
     musicMixerKnobs.forEach((knob) => {
-      knob.addEventListener("pointerdown", (event) => {
-        const band = Number.parseInt(knob.dataset.band ?? "", 10);
-        if (Number.isNaN(band)) return;
-
-        activeMixerBand = band;
-        knob.classList.add("is-dragging");
-        updateMusicMixerBandFromPointer(event.clientY);
+      knob.addEventListener("dragstart", (event) => {
+        event.preventDefault();
       });
+
+      knob.addEventListener("selectstart", (event) => {
+        event.preventDefault();
+      });
+    });
+
+    musicMixer.addEventListener("pointermove", (event) => {
+      if (activeMixerBand !== null) return;
+      setEqProximity(event.clientX, event.clientY);
+    });
+
+    musicMixer.addEventListener("pointerleave", () => {
+      if (activeMixerBand !== null) return;
+      clearEqProximity();
     });
 
     window.addEventListener("pointermove", (event) => {
       if (activeMixerBand === null) return;
+      event.preventDefault();
+      setEqProximity(event.clientX, event.clientY);
       updateMusicMixerBandFromPointer(event.clientY);
     });
 
-    window.addEventListener("pointerup", () => {
+    window.addEventListener("pointerup", (event) => {
       if (activeMixerBand === null) return;
+      activeMixerKnob?.releasePointerCapture?.(event.pointerId);
       activeMixerBand = null;
+      activeMixerKnob = null;
+      document.body.classList.remove("eq-dragging");
       musicMixerKnobs.forEach((knob) => knob.classList.remove("is-dragging"));
+      clearEqProximity();
     });
   }
 
