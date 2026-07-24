@@ -77,33 +77,35 @@
     "PERPETUITY WING APPOINTMENT NOW AVAILABLE",
     "RELAY CALIBRATION CONFIRMED BY FLOOR SYSTEM"
   ];
-  const notes = {
-    "note-1": {
+  const NOTE_STORAGE_KEY = "qute-display-notes";
+  const defaultNotes = Object.freeze({
+    "note-1": Object.freeze({
       title: "",
       subtitle: "",
       body: ""
-    },
-    "note-2": {
+    }),
+    "note-2": Object.freeze({
       title: "",
       subtitle: "",
       body: ""
-    },
-    "note-3": {
+    }),
+    "note-3": Object.freeze({
       title: "",
       subtitle: "",
       body: ""
-    },
-    "note-4": {
+    }),
+    "note-4": Object.freeze({
       title: "",
       subtitle: "",
       body: ""
-    },
-    "note-5": {
+    }),
+    "note-5": Object.freeze({
       title: "",
       subtitle: "",
       body: ""
-    }
-  };
+    })
+  });
+  const notes = createDefaultNotes();
 
   const bookUndoStacks = new Map();
   const BOOK_UNDO_LIMIT = 100;
@@ -116,6 +118,7 @@
   let rotorAnimationFrame = null;
   let rotorBurstStart = 0;
   let rotorBurstDuration = 0;
+  let noteBodyShouldPreviewOnBlur = false;
   let rotorStartAngle = 0;
   let rotorTargetAngle = 0;
   const SYSTEM_TOAST_MS = 2000;
@@ -170,6 +173,57 @@
       breaks: true
     });
   }
+
+  function createDefaultNotes() {
+    return Object.fromEntries(
+      Object.entries(defaultNotes).map(([noteId, note]) => [noteId, { ...note }])
+    );
+  }
+
+  function mergeNotesWithDefaults(candidate) {
+    const merged = createDefaultNotes();
+
+    if (!candidate || typeof candidate !== "object") {
+      return merged;
+    }
+
+    Object.keys(merged).forEach((noteId) => {
+      const next = candidate[noteId];
+      if (!next || typeof next !== "object") return;
+
+      merged[noteId] = {
+        title: typeof next.title === "string" ? next.title : "",
+        subtitle: typeof next.subtitle === "string" ? next.subtitle : "",
+        body: typeof next.body === "string" ? next.body : ""
+      };
+    });
+
+    return merged;
+  }
+
+  function loadNotes() {
+    try {
+      const stored = window.localStorage.getItem(NOTE_STORAGE_KEY);
+      if (!stored) {
+        return createDefaultNotes();
+      }
+
+      return mergeNotesWithDefaults(JSON.parse(stored));
+    } catch (error) {
+      console.warn("Failed to load saved notes.", error);
+      return createDefaultNotes();
+    }
+  }
+
+  function saveNotes() {
+    try {
+      window.localStorage.setItem(NOTE_STORAGE_KEY, JSON.stringify(notes));
+    } catch (error) {
+      console.warn("Failed to save notes.", error);
+    }
+  }
+
+  Object.assign(notes, loadNotes());
 
   function easeOutQuint(progress) {
     return 1 - Math.pow(1 - progress, 5);
@@ -837,6 +891,16 @@
     return noteBody.dataset.notePlain ?? "";
   }
 
+  function queueNoteBodyPreviewOnBlur() {
+    noteBodyShouldPreviewOnBlur = true;
+  }
+
+  function consumeNoteBodyPreviewOnBlur() {
+    const shouldPreview = noteBodyShouldPreviewOnBlur;
+    noteBodyShouldPreviewOnBlur = false;
+    return shouldPreview;
+  }
+
   function syncNoteBodyEmptyState(markdown = getNoteBodyMarkdown()) {
     noteBody.dataset.empty = markdown.trim() === "" ? "true" : "false";
   }
@@ -893,23 +957,54 @@
     });
   }
 
-  function enterNoteBodyEditMode({ placeCaret = "end" } = {}) {
+  function getTextOffsetFromRange(root, range) {
+    if (!range || !root.contains(range.startContainer)) {
+      return null;
+    }
+
+    const offsetRange = range.cloneRange();
+    offsetRange.selectNodeContents(root);
+    offsetRange.setEnd(range.startContainer, range.startOffset);
+    return offsetRange.toString().replace(/\r\n?/g, "\n").length;
+  }
+
+  function getPreviewTextOffsetFromPoint(clientX, clientY) {
+    if (noteBody.isContentEditable) {
+      return null;
+    }
+
+    const range = getCaretRangeFromPoint(clientX, clientY);
+    return getTextOffsetFromRange(noteBody, range);
+  }
+
+  function enterNoteBodyEditMode({ placeCaret = "end", caretOffset = null, preserveScrollTop = null } = {}) {
     const markdown = getNoteBodyMarkdown();
+    noteBodyShouldPreviewOnBlur = false;
     noteBody.classList.add("markdown-source");
     noteBody.classList.remove("markdown-preview");
     noteBody.contentEditable = "true";
     syncNoteBodyEmptyState(markdown);
     if (markdown.length === 0) {
       noteBody.textContent = "";
+    } else if (shouldUsePlainTextBookEditing(noteBody)) {
+      noteBody.textContent = markdown;
     } else {
       paintBookContent(noteBody, true, markdown, bookEditorUsesHighlight(noteBody));
     }
     noteBody.focus({ preventScroll: true });
 
-    if (placeCaret === "start") {
+    if (caretOffset !== null) {
+      setCaretOffsetInNote(noteBody, Math.min(caretOffset, markdown.length));
+    } else if (placeCaret === "start") {
       setCaretOffsetInNote(noteBody, 0);
     } else {
       setCaretOffsetInNote(noteBody, markdown.length);
+    }
+
+    if (preserveScrollTop !== null && bookScrollContainer) {
+      window.requestAnimationFrame(() => {
+        bookScrollContainer.scrollTop = preserveScrollTop;
+      });
     }
 
     queueBookCaretUpdate();
@@ -926,9 +1021,12 @@
     noteBody.classList.add("markdown-source");
     noteBody.classList.remove("markdown-preview");
     noteBody.contentEditable = "true";
+    noteBodyShouldPreviewOnBlur = false;
     syncNoteBodyEmptyState(markdown);
     if (markdown.length === 0) {
       noteBody.textContent = "";
+    } else if (shouldUsePlainTextBookEditing(noteBody)) {
+      noteBody.textContent = markdown;
     } else {
       paintBookContent(noteBody, true, markdown, bookEditorUsesHighlight(noteBody));
     }
@@ -1004,8 +1102,55 @@
     return { start, end };
   }
 
+  function getCaretRangeFromPoint(clientX, clientY) {
+    if (typeof document.caretPositionFromPoint === "function") {
+      const position = document.caretPositionFromPoint(clientX, clientY);
+      if (!position) return null;
+
+      const range = document.createRange();
+      range.setStart(position.offsetNode, position.offset);
+      range.collapse(true);
+      return range;
+    }
+
+    if (typeof document.caretRangeFromPoint === "function") {
+      return document.caretRangeFromPoint(clientX, clientY);
+    }
+
+    return null;
+  }
+
+  function shouldExitNoteBodyToPreview(event) {
+    if (event.target !== noteBody || !noteBody.isContentEditable) {
+      return false;
+    }
+
+    const range = getCaretRangeFromPoint(event.clientX, event.clientY);
+    if (!range || !noteBody.contains(range.startContainer)) {
+      return false;
+    }
+
+    const rect = range.getBoundingClientRect();
+    if (!rect || (!rect.width && !rect.height)) {
+      return false;
+    }
+
+    const horizontalGap = Math.min(
+      Math.abs(event.clientX - rect.left),
+      Math.abs(event.clientX - rect.right)
+    );
+
+    return horizontalGap > 44;
+  }
+
   function getEditablePlainText(element, multiline = false) {
     const raw = element.innerText.replace(/\r\n?/g, "\n");
+    if (multiline) {
+      const withoutZeroWidth = raw.replace(/\u200b/g, "");
+      if (/^\n*$/.test(withoutZeroWidth)) {
+        return "";
+      }
+    }
     return multiline ? raw : raw.replace(/\n/g, " ");
   }
 
@@ -1027,7 +1172,11 @@
         ? text.replace(/\r\n?/g, "\n")
         : text.replace(/\r\n?/g, " ").replace(/\n/g, " ");
       const next = current.slice(0, offsets.start) + insert + current.slice(offsets.end);
-      paintBookHighlights(element, multiline, next);
+      if (shouldUsePlainTextBookEditing(element)) {
+        element.textContent = next;
+      } else {
+        paintBookHighlights(element, multiline, next);
+      }
       setCaretOffsetInNote(element, offsets.start + insert.length);
       return;
     }
@@ -1091,6 +1240,51 @@
   function getCaretOffsetInNote(element) {
     const offsets = getRangeOffsetsInNote(element);
     return offsets?.start ?? null;
+  }
+
+  function selectAllInEditor(element) {
+    element.focus({ preventScroll: true });
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  function getBookEditorFromSelectionOrFocus() {
+    const focusedEditor = document.activeElement?.closest?.(".book-editable");
+    if (focusedEditor) {
+      return focusedEditor;
+    }
+
+    const selection = window.getSelection();
+    if (!selection) {
+      return null;
+    }
+
+    const anchorNode = selection.anchorNode;
+    if (anchorNode instanceof Element) {
+      return anchorNode.closest(".book-editable");
+    }
+
+    return anchorNode?.parentElement?.closest?.(".book-editable") ?? null;
+  }
+
+  function placeCaretAtStartOfEmptyNoteBody() {
+    if (document.activeElement !== noteBody) {
+      noteBody.focus({ preventScroll: true });
+    }
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const range = document.createRange();
+    range.selectNodeContents(noteBody);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 
   function setCaretOffsetInNote(element, targetOffset) {
@@ -1175,6 +1369,10 @@
     return isNoteHighlightEnabled();
   }
 
+  function shouldUsePlainTextBookEditing(element) {
+    return element === noteBody && !bookEditorUsesHighlight(element);
+  }
+
   function getBookUndoKey(element) {
     return `${activeNoteId || "none"}:${element.id}`;
   }
@@ -1204,6 +1402,11 @@
 
       if (text.length === 0) {
         noteBody.textContent = "";
+      } else if (shouldUsePlainTextBookEditing(noteBody)) {
+        noteBody.textContent = text;
+        if (caretOffset !== null) {
+          setCaretOffsetInNote(noteBody, Math.min(caretOffset, text.length));
+        }
       } else {
         paintBookContent(noteBody, true, text, bookEditorUsesHighlight(noteBody));
         if (caretOffset !== null) {
@@ -1276,6 +1479,13 @@
   }
 
   function prepareEmptyBookEditor(element) {
+    if (element === noteBody) {
+      element.textContent = "";
+      element.dataset.notePlain = "";
+      syncNoteBodyEmptyState("");
+      return;
+    }
+
     if (element.childNodes.length > 0) {
       return;
     }
@@ -1378,6 +1588,11 @@
         return;
       }
 
+      if (shouldUsePlainTextBookEditing(element) && document.activeElement === element) {
+        element.textContent = text;
+        return;
+      }
+
       paintBookContent(element, true, text, bookEditorUsesHighlight(element));
       return;
     }
@@ -1464,11 +1679,39 @@
   const bookCaret = createBookCaret();
   let bookCaretFrame = null;
 
+  function shouldUseCustomBookCaret() {
+    return document.body.classList.contains("half-invert-mode");
+  }
+
   function hideBookCaret() {
+    if (!shouldUseCustomBookCaret()) return;
     bookCaret.classList.remove("is-visible");
   }
 
+  function showEmptyNoteBodyCaret() {
+    if (!shouldUseCustomBookCaret() || document.activeElement !== noteBody) {
+      return;
+    }
+
+    const style = window.getComputedStyle(noteBody);
+    const lineHeight = Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) || 16;
+    const height = Math.max(Math.round(lineHeight * 0.92), 16);
+    const rect = noteBody.getBoundingClientRect();
+    const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+
+    bookCaret.style.left = `${Math.round(rect.left + paddingLeft + 1)}px`;
+    bookCaret.style.top = `${Math.round(rect.top + paddingTop + 2)}px`;
+    bookCaret.style.height = `${height}px`;
+    bookCaret.classList.add("is-visible");
+  }
+
   function updateBookCaret() {
+    if (!shouldUseCustomBookCaret()) {
+      hideBookCaret();
+      return;
+    }
+
     const active = document.activeElement?.closest?.(".book-editable");
     if (!active) {
       hideBookCaret();
@@ -1488,15 +1731,30 @@
     }
 
     const rects = range.getClientRects();
-    const rect = rects.length > 0 ? rects[0] : range.getBoundingClientRect();
-    if (!rect || (!rect.width && !rect.height)) {
-      hideBookCaret();
-      return;
-    }
-
     const style = window.getComputedStyle(active);
     const lineHeight = Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) || 16;
-    const height = Math.max(Math.round(rect.height || lineHeight), Math.round(lineHeight * 0.92));
+    let rect = rects.length > 0 ? rects[0] : range.getBoundingClientRect();
+    const height = Math.max(Math.round((rect?.height || lineHeight)), Math.round(lineHeight * 0.92));
+
+    if (!rect || (!rect.width && !rect.height)) {
+      // When the note body is emptied, the collapsed selection may not expose a
+      // measurable client rect. Fall back to the editor box so the insertion
+      // caret stays visible in half-invert mode.
+      if (active === noteBody) {
+        const activeRect = active.getBoundingClientRect();
+        const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+        const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+        rect = {
+          left: activeRect.left + paddingLeft + 4,
+          top: activeRect.top + paddingTop + 2,
+          width: 1,
+          height
+        };
+      } else {
+        hideBookCaret();
+        return;
+      }
+    }
 
     bookCaret.style.left = `${Math.round(rect.left - 3)}px`;
     bookCaret.style.top = `${Math.round(rect.top + ((rect.height || height) - height) / 2)}px`;
@@ -1505,6 +1763,7 @@
   }
 
   function queueBookCaretUpdate() {
+    if (!shouldUseCustomBookCaret()) return;
     if (bookCaretFrame !== null) return;
     bookCaretFrame = window.requestAnimationFrame(() => {
       bookCaretFrame = null;
@@ -1517,6 +1776,7 @@
       const handleChange = () => {
         const previous = noteBody.dataset.notePlain ?? "";
         const next = getEditablePlainText(noteBody, true).replace(/\u200b/g, "");
+        const caretOffset = getCaretOffsetInNote(noteBody);
         noteBody.dataset.notePlain = next;
         syncNoteBodyEmptyState(next);
 
@@ -1524,6 +1784,12 @@
           pushBookUndoState(noteBody, previous);
         }
 
+        if (!(shouldUsePlainTextBookEditing(noteBody) && document.activeElement === noteBody)) {
+          restoreBookEditorText(noteBody, true, next, caretOffset ?? next.length);
+        }
+        if (next.length === 0) {
+          showEmptyNoteBodyCaret();
+        }
         onUpdate?.();
         queueBookCaretUpdate();
       };
@@ -1537,10 +1803,29 @@
         handleChange();
       });
 
+      element.addEventListener("mousedown", (event) => {
+        if (!shouldExitNoteBodyToPreview(event)) {
+          if (element.isContentEditable && (element.dataset.notePlain ?? "") === "") {
+            event.preventDefault();
+            placeCaretAtStartOfEmptyNoteBody();
+            queueBookCaretUpdate();
+          }
+          return;
+        }
+
+        event.preventDefault();
+        queueNoteBodyPreviewOnBlur();
+        element.blur();
+      });
+
       element.addEventListener("focus", () => {
         if (!element.isContentEditable) {
           enterNoteBodyEditMode();
         } else {
+          if ((element.dataset.notePlain ?? "") === "") {
+            showEmptyNoteBodyCaret();
+            placeCaretAtStartOfEmptyNoteBody();
+          }
           queueBookCaretUpdate();
         }
       });
@@ -1551,12 +1836,15 @@
         }
 
         event.preventDefault();
-        enterNoteBodyEditMode();
+        enterNoteBodyEditMode({
+          caretOffset: getPreviewTextOffsetFromPoint(event.clientX, event.clientY),
+          preserveScrollTop: bookScrollContainer?.scrollTop ?? null
+        });
       });
 
       element.addEventListener("blur", () => {
         finalizeBookEditor(element, true);
-        if (isMarkdownPreviewEnabled()) {
+        if (consumeNoteBodyPreviewOnBlur() && isMarkdownPreviewEnabled()) {
           renderNoteBodyPreview();
         }
         hideBookCaret();
@@ -1575,6 +1863,13 @@
           return;
         }
 
+        if (modKey && key === "a") {
+          event.preventDefault();
+          selectAllInEditor(element);
+          queueBookCaretUpdate();
+          return;
+        }
+
         if (modKey && (key === "y" || (key === "z" && event.shiftKey))) {
           event.preventDefault();
           redoBookEditor(element, true, onUpdate);
@@ -1585,6 +1880,7 @@
           event.preventDefault();
           insertTextAtCaret(element, "\n", true);
           handleChange();
+          window.requestAnimationFrame(() => keepEditorInView(element));
           return;
         }
 
@@ -1670,6 +1966,13 @@
       if (modKey && key === "z" && !event.shiftKey) {
         event.preventDefault();
         undoBookEditor(element, multiline, onUpdate);
+        return;
+      }
+
+      if (modKey && key === "a") {
+        event.preventDefault();
+        selectAllInEditor(element);
+        queueBookCaretUpdate();
         return;
       }
 
@@ -1777,8 +2080,13 @@
       const text = getEditablePlainText(element, multiline).replace(/\u200b/g, "");
 
       if (text.length === 0) {
-        prepareEmptyBookEditor(element);
-        setCaretOffsetInNote(element, 0);
+        if (element === noteBody) {
+          prepareEmptyBookEditor(element);
+          placeCaretAtStartOfEmptyNoteBody();
+        } else {
+          prepareEmptyBookEditor(element);
+          setCaretOffsetInNote(element, 0);
+        }
       } else if (!element.hasChildNodes()) {
         paintBookContent(element, multiline, text, bookEditorUsesHighlight(element));
         element.dataset.notePlain = text;
@@ -1852,17 +2160,29 @@
     const containerRect = scrollContainer.getBoundingClientRect();
     const lineHeight = parseFloat(getComputedStyle(element).lineHeight) || 32;
     const containerHeight = containerRect.height;
+    const isNoteBody = element === noteBody;
     const isBookEditor = element.classList.contains("book-editable");
-    const preferredBuffer = isBookEditor
-      ? Math.max(lineHeight * 4, containerHeight * 0.35)
-      : lineHeight * 4;
-    const buffer = Math.min(preferredBuffer, containerHeight * 0.45);
+    const bottomBuffer = isNoteBody
+      ? Math.min(Math.max(lineHeight * 0.75, 10), containerHeight * 0.08)
+      : Math.min(
+        isBookEditor ? Math.max(lineHeight * 4, containerHeight * 0.35) : lineHeight * 4,
+        containerHeight * 0.45
+      );
+    const topBuffer = isNoteBody
+      ? Math.min(Math.max(lineHeight * 0.75, 10), containerHeight * 0.08)
+      : bottomBuffer;
 
-    if (rect.bottom > containerRect.bottom - buffer) {
-      scrollContainer.scrollTop += rect.bottom - (containerRect.bottom - buffer);
-    } else if (rect.top < containerRect.top + buffer) {
-      scrollContainer.scrollTop -= containerRect.top + buffer - rect.top;
+    if (rect.bottom > containerRect.bottom - bottomBuffer) {
+      scrollContainer.scrollTop += rect.bottom - (containerRect.bottom - bottomBuffer);
+    } else if (rect.top < containerRect.top + topBuffer) {
+      scrollContainer.scrollTop -= containerRect.top + topBuffer - rect.top;
     }
+  }
+
+  function isScrolledNearBottom(container, threshold = 48) {
+    if (!container) return false;
+    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+    return maxScrollTop - container.scrollTop <= threshold;
   }
 
   function updateDiagnostics() {
@@ -2148,6 +2468,7 @@
     note.subtitle = getEditablePlainText(noteSubtitle, false);
     note.body = noteBody.dataset.notePlain ?? "";
     updateNoteTabPreview(activeNoteId);
+    saveNotes();
   }
 
   function closeNotes() {
@@ -2410,6 +2731,23 @@
     });
   });
 
+  if (bookShell) {
+    bookShell.addEventListener("click", (event) => {
+      if (!activeNoteId) return;
+      if (event.target.closest(".book-editable, .reading-mode-dock, .notepad-popdown, .checklist-tab")) return;
+
+      const activeEditor = document.activeElement?.closest?.(".book-editable");
+      if (activeEditor) {
+        if (activeEditor === noteBody) {
+          queueNoteBodyPreviewOnBlur();
+        }
+        activeEditor.blur();
+      }
+
+      window.getSelection()?.removeAllRanges();
+    });
+  }
+
   if (readingModeToggle) {
     readingModeToggle.addEventListener("click", () => {
       setReadingModeEnabled(!readingModeEnabled);
@@ -2444,6 +2782,7 @@
 
   bookEditors.forEach((editor) => {
     const multiline = editor === noteBody;
+    editor.spellcheck = true;
 
     syncEmptyState(editor);
     if (editor.dataset.empty !== "true") {
@@ -2464,6 +2803,19 @@
       queueBookCaretUpdate();
     }
   });
+
+  document.addEventListener("keydown", (event) => {
+    const modKey = event.ctrlKey || event.metaKey;
+    if (modKey && event.key.toLowerCase() === "a") {
+      const activeEditor = getBookEditorFromSelectionOrFocus();
+      if (!activeEditor) {
+        return;
+      }
+      event.preventDefault();
+      selectAllInEditor(activeEditor);
+      queueBookCaretUpdate();
+    }
+  }, true);
 
   document.addEventListener("scroll", queueBookCaretUpdate, true);
   window.addEventListener("resize", queueBookCaretUpdate);

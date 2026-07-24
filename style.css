@@ -1804,11 +1804,12 @@ body.half-invert-mode .book-half-invert {
 }
 
 .book-title {
+  /* border-top: 10px solid rgb(92, 92, 92); */
   margin: 0;
   font-family: var(--font-note-title);
   font-size: 90px;
   font-weight: 400;
-  line-height: 1.05;
+  line-height: 0.85;
   letter-spacing: 0.02em;
   display: block;
   text-align: center;
@@ -1846,13 +1847,12 @@ body.half-invert-mode .book-half-invert {
 .book-copy {
   margin: 0;
   font-family: var(--font-ui);
-  font-size: 50px;
-  font-weight: 500;
-  line-height: 1.35;
-  letter-spacing: -0.08em;
+  font-size: 40px;
+  /* font-weight: 500; */
+  line-height: 1;
+  letter-spacing: -0.10em;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  min-height: 280px;
 }
 
 .book-copy.markdown-source {
@@ -1983,11 +1983,11 @@ body.half-invert-mode .book-half-invert {
   display: block;
   max-width: 100%;
   color: var(--ink);
-  caret-color: transparent;
+  caret-color: var(--ink);
 }
 
 .book-editable:focus {
-  caret-color: transparent;
+  caret-color: var(--ink);
 }
 
 .note-highlight-run {
@@ -2046,15 +2046,27 @@ body.half-invert-mode .book-half-invert {
   text-shadow: none;
 }
 
+body.half-invert-mode .book-editable {
+  caret-color: transparent;
+}
+
+body.half-invert-mode .book-editable::selection,
+body.half-invert-mode .book-editable *::selection {
+  background: #000000;
+  color: #ffffff;
+  text-shadow: none;
+}
+
 .book-editable[data-empty="true"] {
   color: var(--ink);
 }
 
-.book-title[data-empty="true"]::before,
-.book-subtitle[data-empty="true"]::before,
-.book-copy[data-empty="true"]::before {
+.book-title[data-empty="true"]:not(:focus)::before,
+.book-subtitle[data-empty="true"]:not(:focus)::before,
+.book-copy[data-empty="true"]:not(:focus)::before {
   content: attr(data-placeholder);
   color: #00000057;
+  pointer-events: none;
 }
 
 .book-caret {
@@ -2587,5 +2599,12 @@ position: absolute;
 }
 
 body.half-invert-mode .book-caret {
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.72), 0 0 14px rgba(255, 255, 255, 0.35);
   z-index: 25;
+}
+
+body.half-invert-mode .book-caret::before {
+  border-bottom-color: #ffffff;
+  filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.55));
 }
