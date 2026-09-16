@@ -33,12 +33,18 @@
                   <main id="tasks" class="tasks-panel" aria-label="Task checklist"></main>
                 </div>
 
+                <button id="billboardTab" class="billboard-tab" type="button" aria-controls="billboardView" aria-expanded="false">
+                  BILLBOARD
+                </button>
+
                 <div class="notes-dock" aria-label="Quick notes">
-                  <button class="note-tab note-tab-1" type="button" data-note="note-1" aria-controls="bookView" aria-expanded="false">NOTE 1</button>
-                  <button class="note-tab note-tab-2" type="button" data-note="note-2" aria-controls="bookView" aria-expanded="false">NOTE 2</button>
-                  <button class="note-tab note-tab-3" type="button" data-note="note-3" aria-controls="bookView" aria-expanded="false">NOTE 3</button>
-                  <button class="note-tab note-tab-4" type="button" data-note="note-4" aria-controls="bookView" aria-expanded="false">NOTE 4</button>
-                  <button class="note-tab note-tab-5" type="button" data-note="note-5" aria-controls="bookView" aria-expanded="false">NOTE 5</button>
+                  <button class="note-tab note-tab-1" type="button" data-note="note-1" aria-controls="bookView" aria-expanded="false"><span class="note-tab-label">NOTE 1</span><span class="note-tab-heading" aria-hidden="true"></span></button>
+                  <button class="note-tab note-tab-2" type="button" data-note="note-2" aria-controls="bookView" aria-expanded="false"><span class="note-tab-label">NOTE 2</span><span class="note-tab-heading" aria-hidden="true"></span></button>
+                  <button class="note-tab note-tab-3" type="button" data-note="note-3" aria-controls="bookView" aria-expanded="false"><span class="note-tab-label">NOTE 3</span><span class="note-tab-heading" aria-hidden="true"></span></button>
+                  <button class="note-tab note-tab-4" type="button" data-note="note-4" aria-controls="bookView" aria-expanded="false"><span class="note-tab-label">NOTE 4</span><span class="note-tab-heading" aria-hidden="true"></span></button>
+                  <button class="note-tab note-tab-5" type="button" data-note="note-5" aria-controls="bookView" aria-expanded="false"><span class="note-tab-label">NOTE 5</span><span class="note-tab-heading" aria-hidden="true"></span></button>
+                  <button class="note-tab note-tab-6" type="button" data-note="note-6" aria-controls="bookView" aria-expanded="false"><span class="note-tab-label">NOTE 6</span><span class="note-tab-heading" aria-hidden="true"></span></button>
+                  <button class="note-tab note-tab-7" type="button" data-note="note-7" aria-controls="bookView" aria-expanded="false"><span class="note-tab-label">NOTE 7</span><span class="note-tab-heading" aria-hidden="true"></span></button>
                 </div>
 
                 <div class="status-topbar" aria-label="System clock">
@@ -294,6 +300,22 @@
         </section>
       </div>
     </div>
+
+    <section id="billboardView" class="billboard-view" aria-label="Billboard message" aria-hidden="true">
+      <button id="billboardReturn" class="billboard-return" type="button" aria-label="Return to checklist">CHECKLIST</button>
+      <div class="billboard-shell">
+        <p class="billboard-reel" aria-hidden="true">AIRPASTE PICTURES PRESENTS</p>
+        <div
+          id="billboardMessage"
+          class="billboard-message"
+          contenteditable="true"
+          spellcheck="true"
+          role="textbox"
+          aria-label="Billboard message"
+          data-placeholder="TYPE A MESSAGE..."></div>
+        <p class="billboard-caption" aria-hidden="true">INTERTITLE // MESSAGE CHANNEL</p>
+      </div>
+    </section>
   </div>
 
   <div id="systemToastLayer" class="system-toast-layer" hidden>

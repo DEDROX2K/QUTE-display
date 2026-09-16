@@ -49,6 +49,10 @@
   const systemToastBody = document.getElementById("systemToastBody");
   const screen = document.querySelector(".screen");
   const noteTabs = Array.from(document.querySelectorAll(".note-tab"));
+  const billboardTab = document.getElementById("billboardTab");
+  const billboardView = document.getElementById("billboardView");
+  const billboardReturn = document.getElementById("billboardReturn");
+  const billboardMessage = document.getElementById("billboardMessage");
   const bookView = document.getElementById("bookView");
   const checklistReturn = document.getElementById("checklistReturn");
   const readingModeToggle = document.getElementById("readingModeToggle");
@@ -59,6 +63,7 @@
   const noteBody = document.getElementById("noteBody");
   const bookEditors = [noteTitle, noteSubtitle, noteBody];
   const NOTE_TRANSITION_MS = 360;
+  const NOTE_RETURN_MS = 420;
   const statuses = ["AVAILABLE", "REFINING", "WELLNESS", "ON BREAK", "AWAITING INPUT"];
   const diagnosticTemplates = [
     "CPU 43%",
@@ -78,6 +83,8 @@
     "RELAY CALIBRATION CONFIRMED BY FLOOR SYSTEM"
   ];
   const NOTE_STORAGE_KEY = "qute-display-notes";
+  const TASK_STORAGE_KEY = "qute-display-checklist";
+  const BILLBOARD_STORAGE_KEY = "qute-display-billboard";
   const defaultNotes = Object.freeze({
     "note-1": Object.freeze({
       title: "",
@@ -100,6 +107,16 @@
       body: ""
     }),
     "note-5": Object.freeze({
+      title: "",
+      subtitle: "",
+      body: ""
+    }),
+    "note-6": Object.freeze({
+      title: "",
+      subtitle: "",
+      body: ""
+    }),
+    "note-7": Object.freeze({
       title: "",
       subtitle: "",
       body: ""
@@ -146,6 +163,7 @@
   let bridgeLastError = "";
   let mediaEventSource = null;
   let noteTransitionTimeout = null;
+  let recentNoteTabTimeout = null;
   const mediaDebugEntries = [];
   const markdownParser = window.marked?.parse ? window.marked : null;
   const READING_MODE_PIXELS_PER_SECOND = 44;
@@ -384,7 +402,7 @@
   function getTabPreviewTitle(noteId) {
     const raw = notes[noteId]?.title?.replace(/\s+/g, " ").trim() ?? "";
     if (!raw) {
-      return "";
+      return getNoteTab(noteId)?.querySelector(".note-tab-label")?.textContent.trim() || "NOTE";
     }
 
     return raw.length > 24 ? `${raw.slice(0, 24).trimEnd()}...` : raw;
@@ -396,6 +414,10 @@
 
     const previewTitle = getTabPreviewTitle(noteId);
     tab.dataset.noteTitle = previewTitle;
+    const heading = tab.querySelector(".note-tab-heading");
+    if (heading) {
+      heading.textContent = previewTitle;
+    }
     tab.setAttribute(
       "aria-label",
       previewTitle ? `Open note: ${previewTitle}` : `Open ${tab.textContent.trim()}`
@@ -417,11 +439,71 @@
   }
 
   function clearNoteTransitionState() {
-    screen.classList.remove("note-opening", "note-closing");
+    screen.classList.remove("note-opening", "note-closing", "note-returning");
     if (noteTransitionTimeout !== null) {
       window.clearTimeout(noteTransitionTimeout);
       noteTransitionTimeout = null;
     }
+  }
+
+  function loadTasks() {
+    try {
+      const stored = window.localStorage.getItem(TASK_STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((task) => task && typeof task.text === "string")
+        .map((task) => ({ text: task.text, done: Boolean(task.done) }));
+    } catch (error) {
+      console.warn("Failed to load saved checklist.", error);
+      return [];
+    }
+  }
+
+  function saveTasks() {
+    try {
+      const tasks = Array.from(tasksPanel.querySelectorAll(".task")).map((task) => ({
+        text: getTaskValue(task.querySelector(".task-text")),
+        done: task.classList.contains("done")
+      }));
+      window.localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(tasks));
+    } catch (error) {
+      console.warn("Failed to save checklist.", error);
+    }
+  }
+
+  function loadBillboardMessage() {
+    try {
+      return window.localStorage.getItem(BILLBOARD_STORAGE_KEY) || "";
+    } catch (error) {
+      console.warn("Failed to load billboard message.", error);
+      return "";
+    }
+  }
+
+  function saveBillboardMessage() {
+    if (!billboardMessage) return;
+    try {
+      window.localStorage.setItem(BILLBOARD_STORAGE_KEY, billboardMessage.textContent.trim());
+    } catch (error) {
+      console.warn("Failed to save billboard message.", error);
+    }
+  }
+
+  function highlightReturnedNote(noteId) {
+    if (recentNoteTabTimeout !== null) {
+      window.clearTimeout(recentNoteTabTimeout);
+      recentNoteTabTimeout = null;
+    }
+
+    noteTabs.forEach((tab) => {
+      tab.classList.toggle("is-recent", tab.dataset.note === noteId);
+    });
+
+    recentNoteTabTimeout = window.setTimeout(() => {
+      noteTabs.forEach((tab) => tab.classList.remove("is-recent"));
+      recentNoteTabTimeout = null;
+    }, 2600);
   }
 
   function startNoteOpenTransition(noteId) {
@@ -2257,9 +2339,10 @@
     } else {
       tasksPanel.insertBefore(task, targetTask.nextSibling);
     }
+    saveTasks();
   }
 
-  function createTask(text = "", afterTask = null) {
+  function createTask(text = "", afterTask = null, done = false) {
     const task = document.createElement("div");
     task.className = "task";
     task.draggable = false;
@@ -2284,6 +2367,11 @@
     syncEmptyState(textElement);
     content.appendChild(textElement);
 
+    if (done) {
+      task.classList.add("done");
+      check.setAttribute("aria-pressed", "true");
+    }
+
     const deleteButton = document.createElement("button");
     deleteButton.className = "task-delete";
     deleteButton.type = "button";
@@ -2294,13 +2382,7 @@
       event.stopPropagation();
       const done = task.classList.toggle("done");
       check.setAttribute("aria-pressed", String(done));
-
-      if (getTaskValue(textElement) !== "") {
-        textElement.classList.remove("is-glitching");
-        void textElement.offsetWidth;
-        textElement.classList.add("is-glitching");
-        animateTaskTextGlitch(textElement, 500);
-      }
+      saveTasks();
     });
 
     deleteButton.addEventListener("click", (event) => {
@@ -2309,6 +2391,7 @@
       if (allTasks.length <= 1) {
         textElement.textContent = "";
         syncEmptyState(textElement);
+        saveTasks();
         placeCaretAtEnd(textElement);
         return;
       }
@@ -2316,6 +2399,7 @@
       const index = allTasks.indexOf(task);
       const fallback = allTasks[index - 1] || allTasks[index + 1];
       task.remove();
+      saveTasks();
       placeCaretAtEnd(fallback.querySelector(".task-text"));
     });
 
@@ -2323,6 +2407,7 @@
       multiline: true,
       onUpdate: () => {
         keepTaskInView(task);
+        saveTasks();
         window.requestAnimationFrame(() => keepEditorInView(textElement));
       }
     });
@@ -2357,6 +2442,7 @@
         const index = allTasks.indexOf(task);
         const fallback = allTasks[index - 1] || allTasks[index + 1];
         task.remove();
+        saveTasks();
         placeCaretAtEnd(fallback.querySelector(".task-text"));
       }
     });
@@ -2402,6 +2488,8 @@
     } else {
       tasksPanel.appendChild(task);
     }
+
+    saveTasks();
 
     // Do not auto-scroll — the user controls the viewport manually.
     return task;
@@ -2472,7 +2560,7 @@
   }
 
   function closeNotes() {
-    if (!activeNoteId || screen.classList.contains("note-closing")) return;
+    if (!activeNoteId || screen.classList.contains("note-returning")) return;
 
     const closingNoteId = activeNoteId;
     setNoteTransitionOrigin(closingNoteId);
@@ -2508,13 +2596,15 @@
       popdownCloseTimeout = null;
     }
 
+    // The old close sequence first collapsed the book into its tab and then
+    // slid the full view back to the checklist. Those two animations fought
+    // each other. Return in one stepped horizontal move instead.
     clearNoteTransitionState();
-    void bookShell.offsetWidth;
-    screen.classList.add("note-closing");
+    screen.classList.add("note-returning");
     noteTransitionTimeout = window.setTimeout(() => {
       activeNoteId = null;
-      screen.classList.remove("note-closing");
-      screen.classList.remove("book-mode");
+      screen.classList.remove("note-returning");
+      screen.classList.remove("note-focus-active", "book-mode");
       bookView.setAttribute("aria-hidden", "true");
 
       noteTabs.forEach((tab) => {
@@ -2522,23 +2612,55 @@
         tab.setAttribute("aria-expanded", "false");
       });
 
+      highlightReturnedNote(closingNoteId);
+
       noteTransitionTimeout = null;
-    }, NOTE_TRANSITION_MS);
+    }, NOTE_RETURN_MS);
+  }
+
+  function openBillboard() {
+    if (!billboardView || !billboardMessage || screen.classList.contains("billboard-mode")) return;
+    if (activeNoteId) return;
+
+    screen.classList.add("billboard-mode");
+    billboardView.setAttribute("aria-hidden", "false");
+    billboardTab?.setAttribute("aria-expanded", "true");
+    syncEmptyState(billboardMessage);
+    window.requestAnimationFrame(() => billboardMessage.focus());
+  }
+
+  function closeBillboard() {
+    if (!screen.classList.contains("billboard-mode") || screen.classList.contains("billboard-returning")) return;
+
+    saveBillboardMessage();
+    screen.classList.add("billboard-returning");
+    window.setTimeout(() => {
+      screen.classList.remove("billboard-returning", "billboard-mode");
+      billboardView?.setAttribute("aria-hidden", "true");
+      billboardTab?.setAttribute("aria-expanded", "false");
+    }, NOTE_RETURN_MS);
   }
 
   function openNote(noteId) {
     const note = notes[noteId];
     if (!note) return;
 
-    if (screen.classList.contains("note-closing")) {
+    if (screen.classList.contains("note-returning")) {
       clearNoteTransitionState();
     }
+
+    if (recentNoteTabTimeout !== null) {
+      window.clearTimeout(recentNoteTabTimeout);
+      recentNoteTabTimeout = null;
+    }
+    noteTabs.forEach((tab) => tab.classList.remove("is-recent"));
 
     setMusicControlsOpen(false);
     saveActiveNote();
     activeNoteId = noteId;
     renderNoteEditor(noteId);
     screen.classList.add("book-mode");
+    screen.classList.add("note-focus-active");
     bookView.setAttribute("aria-hidden", "false");
     if (bookScrollContainer) {
       bookScrollContainer.scrollTop = 0;
@@ -2731,6 +2853,13 @@
     });
   });
 
+  billboardTab?.addEventListener("click", openBillboard);
+  billboardReturn?.addEventListener("click", closeBillboard);
+  billboardMessage?.addEventListener("input", () => {
+    syncEmptyState(billboardMessage);
+    saveBillboardMessage();
+  });
+
   if (bookShell) {
     bookShell.addEventListener("click", (event) => {
       if (!activeNoteId) return;
@@ -2903,6 +3032,10 @@
 
   setMusicControlsOpen(false);
   updateAllNoteTabPreviews();
+  if (billboardMessage) {
+    billboardMessage.textContent = loadBillboardMessage();
+    syncEmptyState(billboardMessage);
+  }
   syncReadingModeButton();
   renderNowPlayingPanel(emptyNowPlayingState);
 
@@ -2913,5 +3046,10 @@
   updateDiagnostics();
   scheduleDiagnostics();
   connectNotificationBridge();
-  createTask();
+  const savedTasks = loadTasks();
+  if (savedTasks.length > 0) {
+    savedTasks.forEach((task) => createTask(task.text, null, task.done));
+  } else {
+    createTask();
+  }
 })();
