@@ -247,6 +247,16 @@ body {
   background: var(--paper);
 }
 
+/* The checklist's edge controls sit above ordinary page content.  Suppress
+   them in full-screen modes so the notepad is clear apart from its own return
+   control, and keep Billboard exclusive to the checklist. */
+.screen.book-mode .notes-dock,
+.screen.book-mode .billboard-tab,
+.screen.music-mode .billboard-tab {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .checklist-stack {
   position: absolute;
   top: var(--tasks-top);

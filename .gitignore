@@ -1,0 +1,16 @@
+# Local QA and agent output
+.playwright-mcp/
+.codex-audit/
+
+# Dependencies, coverage, and build output
+node_modules/
+coverage/
+dist/
+*.log
+
+# Editor and operating-system files
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
